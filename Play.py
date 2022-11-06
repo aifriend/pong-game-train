@@ -15,25 +15,44 @@ if __name__ == '__main__':
 
     # Main Window (0.75)
     game_speed = 2
+    offset = 20
     screen_width = 960
     screen_height = 720
     screen_size = (screen_width, screen_height)
+    mdl = lambda x: x/2
     pygame.display.set_caption('Pong')
 
     # Game objects
     player = Player(
-        'resources/paddle.png', screen_size, screen_width - 20, screen_height / 2, 5)
+        'resources/paddle.png',
+        screen_size,
+        offset,
+        screen_width - offset,
+        mdl(screen_height),
+        game_speed)
     opponent = Opponent(
-        'resources/paddle.png', screen_size, 20, screen_width / 2, 5)
+        'resources/paddle.png',
+        screen_size,
+        offset,
+        offset,
+        mdl(screen_width),
+        game_speed)
     paddle_group = pygame.sprite.Group()
     paddle_group.add(player)
     paddle_group.add(opponent)
     ball = Ball(
-        'resources/ball.png', screen_size, screen_width / 2, screen_height / 2, game_speed, game_speed, paddle_group)
+        'resources/ball.png',
+        screen_size,
+        offset,
+        mdl(screen_width),
+        mdl(screen_height),
+        game_speed,
+        game_speed,
+        paddle_group)
     ball_sprite = pygame.sprite.GroupSingle()
     ball_sprite.add(ball)
 
-    game_manager = GameManager(screen_size, ball_sprite, paddle_group)
+    game_manager = GameManager(screen_size, offset, ball_sprite, paddle_group)
 
     while True:
         for event in pygame.event.get():

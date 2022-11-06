@@ -6,11 +6,12 @@ from Block import Block
 
 
 class Ball(Block):
-    def __init__(self, path, screen_size, x_pos, y_pos, speed_x, speed_y, paddles):
+    def __init__(self, path, screen_size, offset, x_pos, y_pos, speed_x, speed_y, paddles):
         super().__init__(path, x_pos, y_pos)
         self.screen_width, self.screen_height = screen_size
         self.speed_x = speed_x * random.choice((-1, 1))
         self.speed_y = speed_y * random.choice((-1, 1))
+        self.offset = offset
         self.paddles = paddles
         self.score_time = 0
         self.plob_sound = pygame.mixer.Sound("resources/pong.ogg")
@@ -22,7 +23,8 @@ class Ball(Block):
         self.collisions()
 
     def collisions(self):
-        if self.rect.top <= 0 or self.rect.bottom >= self.screen_height:
+        if self.rect.top <= 0 + self.offset or \
+                self.rect.bottom >= self.screen_height - self.offset:
             pygame.mixer.Sound.play(self.plob_sound)
             self.speed_y *= -1
 

@@ -14,6 +14,7 @@ if __name__ == '__main__':
     clock = pygame.time.Clock()
 
     # Main Window (0.75)
+    game_speed = 2
     screen_width = 960
     screen_height = 720
     screen_size = (screen_width, screen_height)
@@ -28,7 +29,7 @@ if __name__ == '__main__':
     paddle_group.add(player)
     paddle_group.add(opponent)
     ball = Ball(
-        'resources/ball.png', screen_size, screen_width / 2, screen_height / 2, 4, 4, paddle_group)
+        'resources/ball.png', screen_size, screen_width / 2, screen_height / 2, game_speed, game_speed, paddle_group)
     ball_sprite = pygame.sprite.GroupSingle()
     ball_sprite.add(ball)
 

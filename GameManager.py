@@ -63,12 +63,6 @@ class GameManager:
         self.screen.blit(player_score, player_score_rect)
         self.screen.blit(opponent_score, opponent_score_rect)
 
-    def update_score(self, countdown_number):
-        time_counter = self.basic_font.render(str(countdown_number), True, self.accent_color)
-        time_counter_rect = time_counter.get_rect(center=(self.screen_width / 2, self.screen_height / 2 + 50))
-        pygame.draw.rect(self.screen, self.bg_color, time_counter_rect)
-        self.screen.blit(time_counter, time_counter_rect)
-
     def background(self):
         offset = 20
         self.screen.fill(self.bg_color)

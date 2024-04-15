@@ -3,9 +3,7 @@ import sys
 import pygame as pygame
 
 from Ball import Ball
-from GameManager import GameManager
-from Opponent import Opponent
-from Player import Player
+from GameObject import GameObject
 
 if __name__ == '__main__':
     # General setup
@@ -14,45 +12,19 @@ if __name__ == '__main__':
     clock = pygame.time.Clock()
 
     # Main Window (0.75)
-    game_speed = 2
     offset = 20
     screen_width = 960
     screen_height = 720
     screen_size = (screen_width, screen_height)
-    mdl = lambda x: x/2
     pygame.display.set_caption('Pong')
 
     # Game objects
-    player = Player(
-        'resources/paddle.png',
-        screen_size,
-        offset,
-        screen_width - offset,
-        mdl(screen_height),
-        game_speed)
-    opponent = Opponent(
-        'resources/paddle.png',
-        screen_size,
-        offset,
-        offset,
-        mdl(screen_width),
-        game_speed)
-    paddle_group = pygame.sprite.Group()
-    paddle_group.add(player)
-    paddle_group.add(opponent)
-    ball = Ball(
-        'resources/ball.png',
-        screen_size,
-        offset,
-        mdl(screen_width),
-        mdl(screen_height),
-        game_speed,
-        game_speed,
-        paddle_group)
-    ball_sprite = pygame.sprite.GroupSingle()
-    ball_sprite.add(ball)
-
-    game_manager = GameManager(screen_size, offset, ball_sprite, paddle_group)
+    game_manager, player, opponent = GameObject.get_game_object(
+        screen_size=screen_size,
+        offset=offset,
+        screen_width=screen_width,
+        screen_height=screen_height,
+    )
 
     while True:
         for event in pygame.event.get():
@@ -64,6 +36,16 @@ if __name__ == '__main__':
                     player.movement -= player.speed
                 if event.key == pygame.K_DOWN:
                     player.movement += player.speed
+                if event.key == pygame.K_s and \
+                        pygame.key.get_mods() & pygame.KMOD_SHIFT:
+                    game_manager, player, opponent = \
+                        GameObject.get_game_object(
+                            screen_size=screen_size,
+                            offset=offset,
+                            screen_width=screen_width,
+                            screen_height=screen_height,
+                            ball_speed=Ball.HIGH_SPEED,
+                        )
             if event.type == pygame.KEYUP:
                 if event.key == pygame.K_UP:
                     player.movement += player.speed
@@ -77,5 +59,5 @@ if __name__ == '__main__':
         game_manager.run_game()
 
         # Rendering
-        pygame.display.flip()
+        pygame.display.update()
         clock.tick(120)

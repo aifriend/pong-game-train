@@ -6,7 +6,25 @@ from Block import Block
 
 
 class Ball(Block):
-    def __init__(self, path, screen_size, offset, x_pos, y_pos, speed_x, speed_y, paddles):
+    SMALL_PAD = 1
+    LARGE_PAD = 2
+
+    LOW_SPEED = 2
+    HIGH_SPEED = 4
+
+    ANGLE_20 = 20
+    ANGLE_40 = 40
+
+    def __init__(self,
+                 path,
+                 screen_size,
+                 offset,
+                 x_pos,
+                 y_pos,
+                 paddles,
+                 speed_x,
+                 speed_y,
+                 size):
         super().__init__(path, x_pos, y_pos)
         self.screen_width, self.screen_height = screen_size
         self.speed_x = speed_x * random.choice((-1, 1))

@@ -1,113 +1,117 @@
-### PyCharm ###
-# Covers JetBrains IDEs: IntelliJ, RubyMine, PhpStorm, AppCode, PyCharm, CLion, Android Studio, WebStorm and Rider
-# Reference: https://intellij-support.jetbrains.com/hc/en-us/articles/206544839
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
 
-# User-specific stuff
-.idea/**/workspace.xml
-.idea/**/tasks.xml
-.idea/**/usage.statistics.xml
-.idea/**/dictionaries
-.idea/**/shelf
+# Virtual Environments
+.venv/
+venv/
+ENV/
+env/
+.virtualenv
 
-# AWS User-specific
-.idea/**/aws.xml
-
-# Generated files
-.idea/**/contentModel.xml
-
-# Sensitive or high-churn files
-.idea/**/dataSources/
-.idea/**/dataSources.ids
-.idea/**/dataSources.local.xml
-.idea/**/sqlDataSources.xml
-.idea/**/dynamic.xml
-.idea/**/uiDesigner.xml
-.idea/**/dbnavigator.xml
-
-# Gradle
-.idea/**/gradle.xml
-.idea/**/libraries
-
-# Gradle and Maven with auto-import
-# When using Gradle or Maven with auto-import, you should exclude module files,
-# since they will be recreated, and may cause churn.  Uncomment if using
-# auto-import.
-# .idea/artifacts
-# .idea/compiler.xml
-# .idea/jarRepositories.xml
-# .idea/modules.xml
-# .idea/*.iml
-# .idea/modules
-# *.iml
-# *.ipr
-
-# CMake
-cmake-build-*/
-
-# Mongo Explorer plugin
-.idea/**/mongoSettings.xml
-
-# File-based project format
+# PyCharm
+.idea/
+*.iml
 *.iws
 
-# IntelliJ
-out/
+# VS Code
+.vscode/
+*.code-workspace
 
-# mpeltonen/sbt-idea plugin
-.idea_modules/
+# Jupyter Notebook
+.ipynb_checkpoints
+*.ipynb
 
-# JIRA plugin
-atlassian-ide-plugin.xml
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
 
-# Cursive Clojure plugin
-.idea/replstate.xml
+# TensorBoard & Training
+tensorboard_*/
+logs/
+runs/
+checkpoints/*.pth
+*.pth
+!final_weights.pth
+!recent_weights.pth
 
-# SonarLint plugin
-.idea/sonarlint/
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
 
-# Crashlytics plugin (for Android Studio and IntelliJ)
-com_crashlytics_export_strings.xml
-crashlytics.properties
-crashlytics-build.properties
-fabric.properties
+# Documentation
+docs/_build/
+site/
 
-# Editor-based Rest Client
-.idea/httpRequests
+# Cursor specific
+.cursor/
+.cursorindexingignore
+.specstory/
 
-# Android studio 3.1+ serialized cache file
-.idea/caches/build_file_checksums.ser
+# Temporary files
+*.log
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
 
-### PyCharm Patch ###
-# Comment Reason: https://github.com/joeblau/gitignore.io/issues/186#issuecomment-215987721
+# Environment variables
+.env
+.env.local
 
-# *.iml
-# modules.xml
-# .idea/misc.xml
-# *.ipr
+# Package files
+*.tar.gz
+*.zip
 
-# Sonarlint plugin
-# https://plugins.jetbrains.com/plugin/7973-sonarlint
-.idea/**/sonarlint/
+# Training outputs
+training_*.png
+training_*.pdf
+screenshots/
 
-# SonarQube Plugin
-# https://plugins.jetbrains.com/plugin/7238-sonarqube-community-plugin
-.idea/**/sonarIssues.xml
+# Model weights (except examples)
+weights/
+models/
+*.pt
+!example_weights.pth
 
-# Markdown Navigator plugin
-# https://plugins.jetbrains.com/plugin/7896-markdown-navigator-enhanced
-.idea/**/markdown-navigator.xml
-.idea/**/markdown-navigator-enh.xml
-.idea/**/markdown-navigator/
+# Data
+data/
+datasets/
+*.csv
+*.npy
+*.npz
 
-# Cache file creation bug
-# See https://youtrack.jetbrains.com/issue/JBR-2257
-.idea/$CACHE_FILE$
-
-# CodeStream plugin
-# https://plugins.jetbrains.com/plugin/12206-codestream
-.idea/codestream.xml
-
-# Azure Toolkit for IntelliJ plugin
-# https://plugins.jetbrains.com/plugin/8053-azure-toolkit-for-intellij
-.idea/**/azureSettings.xml
-
+# Misc
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.pyre/
+.pytype/

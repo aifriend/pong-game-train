@@ -23,14 +23,39 @@ python trainer/main.py
 
 During training you will see per-episode stats (score, duration, loss, speed). Press `Ctrl+C` to stop; weights are saved automatically.
 
-## Saved Weights
+## Saved Weights & Automatic Resume
 
 The PyTorch agent stores checkpoints as `.pth` files:
 
-- `recent_weights.pth` is written every 50,000 timesteps from inside `environment.take_step`.
+- `checkpoints/checkpoint_episode_N.pth` is saved every 100 episodes with full training state.
 - `final_weights.pth` is written when `main.py` finishes or you interrupt training.
 
-Use `Agent.load_weights(<path>)` to resume.
+### Automatic Checkpoint Resume
+
+Training automatically resumes from the latest checkpoint when you restart `main.py`:
+
+1. The script scans `checkpoints/` for checkpoint files
+2. Loads the checkpoint with the highest episode number
+3. Restores full training state including:
+   - Model weights and optimizer state
+   - Episode counter and curriculum phase
+   - Training statistics (scores history, max score)
+   - Plotting history for continuous progress graphs
+   - Elapsed training time
+
+Simply run `python trainer/main.py` and training will continue from where it left off.
+
+### Manual Weight Loading
+
+To manually load specific weights:
+
+```python
+from trainer import Agent
+
+agent = Agent(...)
+training_state = agent.load_weights('checkpoints/checkpoint_episode_1000.pth')
+# training_state contains: episode, current_phase, scores_history, max_score, etc.
+```
 
 ## Hyperparameters
 

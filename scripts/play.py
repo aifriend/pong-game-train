@@ -1,6 +1,12 @@
 """Main game entry point."""
 
 import sys
+from pathlib import Path
+
+# Add project root to path so imports work when running directly
+project_root = Path(__file__).parent.parent
+if str(project_root) not in sys.path:
+    sys.path.insert(0, str(project_root))
 
 import pygame
 
@@ -42,9 +48,9 @@ def main() -> None:
                 running = False
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_UP:
-                    player.movement -= player.speed
+                    player.input_direction = -1
                 elif event.key == pygame.K_DOWN:
-                    player.movement += player.speed
+                    player.input_direction = 1
                 elif event.key == pygame.K_s and pygame.key.get_mods() & pygame.KMOD_SHIFT:
                     # Reset game with high speed
                     game_manager, player, opponent = GameObject.get_game_object(
@@ -55,10 +61,10 @@ def main() -> None:
                         ball_speed=Ball.HIGH_SPEED,
                     )
             elif event.type == pygame.KEYUP:
-                if event.key == pygame.K_UP:
-                    player.movement += player.speed
-                elif event.key == pygame.K_DOWN:
-                    player.movement -= player.speed
+                if event.key == pygame.K_UP and player.input_direction == -1:
+                    player.input_direction = 0
+                elif event.key == pygame.K_DOWN and player.input_direction == 1:
+                    player.input_direction = 0
 
         # Background
         game_manager.background()

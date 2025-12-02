@@ -11,6 +11,16 @@ Example:
     python scripts/play_against_agent.py checkpoints/checkpoint_episode_2000.pth
 """
 
+import sys
+import os
+from pathlib import Path
+
+# Add project root to path so imports work when running directly
+project_root = Path(__file__).parent.parent
+if str(project_root) not in sys.path:
+    sys.path.insert(0, str(project_root))
+
+# Now import project modules
 from pong.constants import (
     SCREEN_WIDTH,
     SCREEN_HEIGHT,
@@ -27,14 +37,6 @@ from trainer.environment import transform_obs_for_opponent
 from trainer import Agent
 import numpy as np
 import pygame
-import sys
-import os
-from pathlib import Path
-
-# Add project root to path so imports work when running directly
-project_root = Path(__file__).parent.parent
-if str(project_root) not in sys.path:
-    sys.path.insert(0, str(project_root))
 
 
 # Agent configuration (must match training)
@@ -152,14 +154,14 @@ def main():
                 if event.key == pygame.K_ESCAPE:
                     running = False
                 elif event.key == pygame.K_UP:
-                    player.movement -= player.speed
+                    player.input_direction = -1
                 elif event.key == pygame.K_DOWN:
-                    player.movement += player.speed
+                    player.input_direction = 1
             elif event.type == pygame.KEYUP:
-                if event.key == pygame.K_UP:
-                    player.movement += player.speed
-                elif event.key == pygame.K_DOWN:
-                    player.movement -= player.speed
+                if event.key == pygame.K_UP and player.input_direction == -1:
+                    player.input_direction = 0
+                elif event.key == pygame.K_DOWN and player.input_direction == 1:
+                    player.input_direction = 0
 
         # Get observation for agent (opponent perspective)
         obs = get_observation(game_manager, player, opponent)
@@ -167,6 +169,16 @@ def main():
 
         # Get agent action for opponent paddle (greedy, no exploration)
         opponent_action = agent.get_action(opponent_obs, use_noise=False)
+        
+        # DEBUG: Print agent action occasionally (every 60 frames = ~1 second at 60 FPS)
+        if hasattr(main, 'frame_count'):
+            main.frame_count += 1
+        else:
+            main.frame_count = 0
+        
+        if main.frame_count % 60 == 0:
+            action_names = {0: "STAY", 1: "UP", 2: "DOWN"}
+            print(f"Agent action: {action_names[opponent_action]} (action={opponent_action})")
 
         # Apply action to opponent paddle
         if opponent_action == 1:  # Move up

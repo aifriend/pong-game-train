@@ -155,13 +155,54 @@ This document details the comprehensive improvements made to the Pong RL trainin
 - ✅ Maintains Gymnasium API compliance
 - ✅ Cross-platform support (macOS, Linux, Windows)
 
+### 11. **7-Phase Curriculum Learning** ⭐ (NEW)
+**Files:** `trainer/curriculum.py`, `pong/env/pong_headless.py`
+
+- **Problem**: Agent struggled to learn from scratch against normal opponents
+- **Solution**: Progressive skill-building curriculum with 7 phases
+- **Phases**:
+  1. Ball Tracking (slow AI, 0.7x speed) - Learn to follow ball
+  2. Basic Returns (slow AI, 0.85x speed) - Learn to hit ball
+  3. Consistent Returns (normal AI, 1.0x speed) - Sustain rallies
+  4. Positioning (normal AI, 1.0x speed) - Strategic placement
+  5. Angle Control (reactive AI, 1.1x speed) - Precision shots
+  6. Self-Play Foundation (agent, 1.0x speed) - Play against self
+  7. Mastery (agent, 1.0x speed) - Continuous improvement
+
+- **Features**:
+  - Automatic phase advancement based on metrics
+  - Phase-specific rewards for targeted learning
+  - Configurable thresholds and minimum episodes
+  - TensorBoard logging of curriculum progress
+
+### 12. **Improved Alignment Metric** (v3)
+**File:** `pong/env/pong_headless.py`
+
+- **Problem**: Original alignment threshold (0.8) was nearly impossible to achieve
+- **Solution**: Paddle-relative alignment calculation
+- **Benefits**:
+  - Within paddle = 1.0 alignment (achievable goal)
+  - Gradual decrease outside paddle range
+  - More meaningful feedback signal
+
+### 13. **Enhanced Tracking Rewards** (v3)
+**File:** `pong/env/pong_headless.py`
+
+- **Problem**: Weak reward signal for ball tracking in early phases
+- **Solution**: Stronger, more targeted rewards
+- **Changes**:
+  - +0.05 for being aligned with ball (was +0.01)
+  - +0.02 for moving toward ball
+  - Extra +0.03 bonus in phases 0-1
+  - Penalty for being very far from ball
+
 ## 🚀 Future Enhancement Ideas
 
 ### High Priority
-1. **Prioritized Experience Replay**: Weight important transitions higher
-2. **Dueling DQN**: Separate value and advantage streams
+1. ~~**Prioritized Experience Replay**: Weight important transitions higher~~ ✅ Implemented
+2. ~~**Dueling DQN**: Separate value and advantage streams~~ ✅ Implemented
 3. **Multi-step returns**: N-step TD learning
-4. **Curriculum learning**: Progressive difficulty scaling
+4. ~~**Curriculum learning**: Progressive difficulty scaling~~ ✅ Implemented
 
 ### Medium Priority  
 5. **Rainbow DQN**: Combine all DQN improvements

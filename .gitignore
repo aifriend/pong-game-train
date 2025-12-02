@@ -52,10 +52,8 @@ htmlcov/
 tensorboard_*/
 logs/
 runs/
-checkpoints/*.pth
+checkpoints/
 *.pth
-!final_weights.pth
-!recent_weights.pth
 
 # OS
 .DS_Store
@@ -96,11 +94,17 @@ training_*.png
 training_*.pdf
 screenshots/
 
-# Model weights (except examples)
+# Model weights
 weights/
 models/
 *.pt
-!example_weights.pth
+*.pkl
+*.h5
+*.ckpt
+*.safetensors
+*.onnx
+*.pb
+*.tflite
 
 # Data
 data/

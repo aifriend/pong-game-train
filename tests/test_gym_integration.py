@@ -3,27 +3,29 @@ Test script for Pong Gym environment integration.
 
 This script tests the gym environment thoroughly to ensure it works correctly
 with the Gymnasium API and is ready for RL training.
+
+Uses PongHeadlessEnv by default for faster, more reliable testing.
 """
 
 import gymnasium as gym
 import numpy as np
-from pong import register_pong_env, PongEnv
-import matplotlib.pyplot as plt
+# Use headless environment for testing (no pygame dependency)
+from pong.env.pong_headless import PongHeadlessEnv, register_headless_env
 
 
 def test_environment_creation():
     """Test basic environment creation and registration."""
     print("🧪 Testing environment creation...")
 
-    # Register environment
-    register_pong_env()
+    # Register headless environment
+    register_headless_env()
 
     # Test direct instantiation
-    env = PongEnv(render_mode=None)
+    env = PongHeadlessEnv(render_mode=None)
     print(f"✅ Direct instantiation successful")
 
     # Test gym.make
-    env2 = gym.make("Pong-v0", render_mode=None)
+    env2 = gym.make("PongHeadless-v0", render_mode=None)
     print(f"✅ gym.make instantiation successful")
 
     return env2
@@ -149,32 +151,31 @@ def test_rendering_modes():
     """Test different rendering modes."""
     print("\n🧪 Testing rendering modes...")
 
-    # Test rgb_array mode
+    # Test ansi mode (text-based rendering for headless env)
     try:
-        env = gym.make("Pong-v0", render_mode="rgb_array")
+        env = gym.make("PongHeadless-v0", render_mode="ansi")
         obs, _ = env.reset()
 
         # Take a few steps and render
         for _ in range(5):
             action = env.action_space.sample()
             obs, _, _, _, _ = env.step(action)
-            rgb_array = env.render()
+            ansi_output = env.render()
 
-            if rgb_array is not None:
-                assert isinstance(rgb_array, np.ndarray), "RGB array should be numpy array"
-                assert len(rgb_array.shape) == 3, "RGB array should be 3D"
-                assert rgb_array.shape[2] == 3, "RGB array should have 3 channels"
+            if ansi_output is not None:
+                assert isinstance(ansi_output, str), "ANSI output should be string"
+                assert len(ansi_output) > 0, "ANSI output should not be empty"
 
         env.close()
-        print(f"✅ RGB array rendering mode works")
-        print(f"   RGB array shape: {rgb_array.shape}")
+        print(f"✅ ANSI rendering mode works")
+        print(f"   Output preview: {ansi_output[:50]}...")
 
     except Exception as e:
-        print(f"⚠️ RGB array rendering failed: {e}")
+        print(f"⚠️ ANSI rendering failed: {e}")
 
     # Test None rendering mode
     try:
-        env = gym.make("Pong-v0", render_mode=None)
+        env = gym.make("PongHeadless-v0", render_mode=None)
         obs, _ = env.reset()
         result = env.render()
         assert result is None, "None render mode should return None"
@@ -190,7 +191,7 @@ def test_episode_completion():
     print("\n🧪 Testing episode completion...")
 
     # Test score-based termination
-    env = gym.make("Pong-v0", max_score=3, max_steps=10000, render_mode=None)
+    env = gym.make("PongHeadless-v0", max_score=3, max_steps=10000, render_mode=None)
     obs, info = env.reset()
 
     step_count = 0
@@ -213,7 +214,7 @@ def test_episode_completion():
     env.close()
 
     # Test step-based truncation
-    env = gym.make("Pong-v0", max_score=100, max_steps=50, render_mode=None)
+    env = gym.make("PongHeadless-v0", max_score=100, max_steps=50, render_mode=None)
     obs, info = env.reset()
 
     step_count = 0
@@ -237,7 +238,7 @@ def test_multiple_episodes():
     """Test running multiple episodes."""
     print("\n🧪 Testing multiple episodes...")
 
-    env = gym.make("Pong-v0", max_score=3, max_steps=1000, render_mode=None)
+    env = gym.make("PongHeadless-v0", max_score=3, max_steps=1000, render_mode=None)
 
     episode_lengths = []
     episode_rewards = []

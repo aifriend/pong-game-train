@@ -209,3 +209,31 @@ def play_episode(env, agent, debug=False):
         score, done = take_step(env, agent, score, debug)
 
     return score
+
+
+def play_episode_with_info(env, agent, debug=False):
+    """
+    Play one complete episode and return info for curriculum tracking.
+
+    Args:
+        env: Gymnasium environment
+        agent: DQN agent
+        debug: Debug mode flag
+
+    Returns:
+        Tuple of (final_score, final_info_dict)
+    """
+    initialize_new_game(env, agent)
+    done = False
+    score = 0.0
+    info = {}
+
+    while not done:
+        score, done = take_step(env, agent, score, debug)
+    
+    # Get final info from environment for curriculum metrics
+    unwrapped_env = env.unwrapped
+    if hasattr(unwrapped_env, '_get_info'):
+        info = unwrapped_env._get_info()
+    
+    return score, info

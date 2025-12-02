@@ -482,23 +482,27 @@ class Agent:
             if debug:
                 print(f"\nTarget model updated (learns: {self.learns}, loss: {loss.item():.4f})")
 
-    def save_weights(self, filepath):
+    def save_weights(self, filepath, training_state=None):
         """
-        Save model weights to file.
+        Save model weights and optional training state to file.
 
         Args:
             filepath: Path to save weights
+            training_state: Optional dict with training state (episode, phase, scores, etc.)
         """
-        torch.save(
-            {
-                "model_state_dict": self.model.state_dict(),
-                "model_target_state_dict": self.model_target.state_dict(),
-                "optimizer_state_dict": self.optimizer.state_dict(),
-                "total_timesteps": self.total_timesteps,
-                "learns": self.learns,
-            },
-            filepath,
-        )
+        checkpoint_data = {
+            "model_state_dict": self.model.state_dict(),
+            "model_target_state_dict": self.model_target.state_dict(),
+            "optimizer_state_dict": self.optimizer.state_dict(),
+            "total_timesteps": self.total_timesteps,
+            "learns": self.learns,
+        }
+        
+        # Add training state if provided
+        if training_state is not None:
+            checkpoint_data["training_state"] = training_state
+        
+        torch.save(checkpoint_data, filepath)
 
     def load_weights(self, filepath):
         """
@@ -506,6 +510,9 @@ class Agent:
 
         Args:
             filepath: Path to load weights from
+            
+        Returns:
+            dict: Training state if present in checkpoint, None otherwise
         """
         checkpoint = torch.load(filepath, map_location=self.device)
         self.model.load_state_dict(checkpoint["model_state_dict"])
@@ -513,3 +520,6 @@ class Agent:
         self.optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
         self.total_timesteps = checkpoint.get("total_timesteps", 0)
         self.learns = checkpoint.get("learns", 0)
+        
+        # Return training state if present
+        return checkpoint.get("training_state", None)

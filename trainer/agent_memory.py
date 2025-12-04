@@ -59,6 +59,20 @@ class Memory:
         A valid transition is (state, action, reward, next_state, done) where
         neither state nor next_state crosses an episode boundary.
 
+        Buffer layout: When add_experience(obs, reward, action, done) is called,
+        it stores at position i:
+          - frames[i] = obs (the NEW state after action)
+          - actions[i] = action (the action taken FROM the previous state)
+          - rewards[i] = reward (reward for the transition TO this state)
+          - done_flags[i] = done (whether this state is terminal)
+
+        So a transition (s_t, a_t, r_t, s_{t+1}) is reconstructed as:
+          - state = frames[sampled_index]
+          - action = actions[next_index]  (action stored with resulting state)
+          - reward = rewards[next_index]  (reward stored with resulting state)
+          - next_state = frames[next_index]
+          - done = done_flags[next_index]
+
         Args:
             batch_size: Number of transitions to sample
 
@@ -78,8 +92,9 @@ class Memory:
         states = self.frames[sampled_indices]
         next_indices = (sampled_indices + 1) % self.max_len
         next_states = self.frames[next_indices]
-        actions = self.actions[sampled_indices]
-        rewards = self.rewards[next_indices]  # Reward received after taking action
+        # Action, reward, and done are stored at next_index (with the resulting state)
+        actions = self.actions[next_indices]
+        rewards = self.rewards[next_indices]
         dones = self.done_flags[next_indices]
 
         return states, actions, rewards, next_states, dones
@@ -163,6 +178,9 @@ class PrioritizedMemory(Memory):
         """
         Sample batch with prioritized sampling.
 
+        See Memory.sample_batch for buffer layout documentation.
+        Action, reward, and done are stored at next_index (with the resulting state).
+
         Returns:
             Tuple of (states, actions, rewards, next_states, dones, indices, weights)
         """
@@ -195,7 +213,8 @@ class PrioritizedMemory(Memory):
         states = self.frames[sampled_indices]
         next_indices = (sampled_indices + 1) % self.max_len
         next_states = self.frames[next_indices]
-        actions = self.actions[sampled_indices]
+        # Action, reward, and done are stored at next_index (with the resulting state)
+        actions = self.actions[next_indices]
         rewards = self.rewards[next_indices]
         dones = self.done_flags[next_indices]
 

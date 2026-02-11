@@ -24,8 +24,8 @@ MANIFEST
 # Virtual Environments
 .venv/
 venv/
-ENV/
-env/
+/ENV/
+/env/
 .virtualenv
 
 # PyCharm
@@ -49,6 +49,7 @@ htmlcov/
 .nox/
 
 # TensorBoard & Training
+tensorboard/
 tensorboard_*/
 logs/
 runs/
@@ -72,6 +73,9 @@ site/
 .cursor/
 .cursorindexingignore
 .specstory/
+
+# Claude Code
+.claude/
 
 # Temporary files
 *.log
@@ -97,6 +101,7 @@ screenshots/
 # Model weights
 weights/
 models/
+models_v*/
 *.pt
 *.pkl
 *.h5

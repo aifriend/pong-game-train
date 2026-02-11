@@ -1,82 +1,188 @@
 # Learning Resources
 
-Welcome to the Pong RL learning resources! This directory contains comprehensive guides and tutorials for working with reinforcement learning in the Pong environment.
+Educational materials for understanding the Pong AI training environment.
 
 ## 📚 Available Guides
 
-### 1. [Stable-Baselines3 Tutorial](./stable_baselines3_tutorial.md)
-Complete guide to using Stable-Baselines3 with the Pong environment. Learn how to:
-- Set up and train RL agents
-- Use PPO and DQN algorithms
-- Implement callbacks and monitoring
-- Best practices and common patterns
+### [Stable-Baselines3 Tutorial](stable_baselines3_tutorial.md)
+Complete guide to using Stable-Baselines3 for Pong training, including PPO, DQN, and advanced features.
 
-### 2. [Environment Guide](./environment_guide.md)
-Detailed documentation about the Pong Gym environment:
-- Environment specifications
-- Observation and action spaces
-- Reward system
-- Configuration options
-- Usage examples
+**Topics covered:**
+- What is Stable-Baselines3?
+- Core concepts and API
+- PPO vs DQN algorithms
+- Callbacks and monitoring
+- Vectorized environments
+- Custom policies
 
-### 3. [Legacy Trainer Guide](./legacy_trainer_guide.md)
-Guide to the custom DQN implementation:
-- Understanding DQN from scratch
-- Custom network architectures
-- Educational implementation details
-- When to use custom vs library implementations
+---
 
-## 🚀 Quick Start
+## 🎯 Quick Learning Path
 
-### For Beginners
-1. Start with [Environment Guide](./environment_guide.md) to understand the Pong environment
-2. Follow [Stable-Baselines3 Tutorial](./stable_baselines3_tutorial.md) for practical training
-3. Explore [Legacy Trainer Guide](./legacy_trainer_guide.md) to understand the internals
+### Beginner
+1. Read [QUICKSTART.md](../QUICKSTART.md)
+2. Run the basic training script
+3. Understand observation and action spaces
 
-### For Experienced Users
-- Jump to [Stable-Baselines3 Tutorial](./stable_baselines3_tutorial.md) for advanced features
-- Check [Environment Guide](./environment_guide.md) for configuration options
-- Review [Legacy Trainer Guide](./legacy_trainer_guide.md) for custom implementations
+### Intermediate
+1. Read [PPO_TRAINING.md](../docs/PPO_TRAINING.md)
+2. Understand the 3-phase curriculum
+3. Experiment with hyperparameters
+
+### Advanced
+1. Read [stable_baselines3_tutorial.md](stable_baselines3_tutorial.md)
+2. Implement custom reward wrappers
+3. Design your own curriculum
+
+---
+
+## 🔬 Key Concepts
+
+### Reinforcement Learning Basics
+
+- **Agent**: The AI player learning to play Pong
+- **Environment**: The Pong game that the agent interacts with
+- **Observation**: The 9-dimensional state vector the agent sees
+- **Action**: Move up, down, or stay
+- **Reward**: +10 for scoring, -10 for opponent scoring, +20 for winning
+
+### PPO (Proximal Policy Optimization)
+
+- **On-policy** algorithm (learns from current policy)
+- **Actor-Critic** architecture (policy + value networks)
+- **Clipped objective** for stable updates
+- **Best for**: Sparse rewards, game environments
+
+### Win-Focused Training
+
+The key insight: **reward scoring, not rallying**
+
+Previous approaches rewarded hitting the ball, which made agents learn to rally indefinitely. The PPO approach only rewards:
+- Scoring points
+- Winning games
+- Offensive positioning
+
+This forces the agent to learn aggressive, scoring-focused strategies.
+
+---
 
 ## 📖 Additional Resources
 
+### External Resources
+
+- [Stable-Baselines3 Docs](https://stable-baselines3.readthedocs.io/)
+- [PPO Paper](https://arxiv.org/abs/1707.06347) (Schulman et al., 2017)
 - [Gymnasium Documentation](https://gymnasium.farama.org/)
-- [Stable-Baselines3 Documentation](https://stable-baselines3.readthedocs.io/)
-- [Reinforcement Learning: An Introduction](http://incompleteideas.net/book/)
+- [OpenAI Spinning Up](https://spinningup.openai.com/)
 
-## 🎯 Learning Path
+### In This Repository
 
+- [README.md](../README.md) - Project overview
+- [QUICKSTART.md](../QUICKSTART.md) - Fast setup guide
+- [PPO_TRAINING.md](../docs/PPO_TRAINING.md) - Training methodology
+- [CONTRIBUTING.md](../CONTRIBUTING.md) - Contribution guidelines
+
+---
+
+## 🎓 Learning by Example
+
+### Example 1: Basic Training
+
+```python
+from stable_baselines3 import PPO
+from pong.env.wrappers import make_ppo_env
+from pong.env.pong_headless import OpponentType
+
+# Create environment
+env = make_ppo_env(OpponentType.SLOW_AI)
+
+# Create PPO model
+model = PPO("MlpPolicy", env, verbose=1)
+
+# Train for 50K steps
+model.learn(total_timesteps=50000)
+
+# Save
+model.save("my_first_agent")
 ```
-1. Understand the Environment
-   └─> Read environment_guide.md
-   
-2. Learn Stable-Baselines3
-   └─> Follow stable_baselines3_tutorial.md
-   
-3. Understand Internals (Optional)
-   └─> Study legacy_trainer_guide.md
-   
-4. Experiment and Practice
-   └─> Run scripts/train_pong_agent.py
-   └─> Modify hyperparameters
-   └─> Try different algorithms
+
+### Example 2: Evaluation
+
+```python
+from stable_baselines3 import PPO
+from pong.env.pong_headless import PongHeadlessEnv, OpponentType
+
+# Load trained model
+model = PPO.load("my_first_agent")
+
+# Create test environment
+env = PongHeadlessEnv(opponent_type=OpponentType.NORMAL_AI)
+
+# Play 10 games
+wins = 0
+for episode in range(10):
+    obs, _ = env.reset()
+    done = False
+    
+    while not done:
+        action, _ = model.predict(obs, deterministic=True)
+        obs, reward, terminated, truncated, info = env.step(action)
+        done = terminated or truncated
+    
+    if info["player_score"] > info["opponent_score"]:
+        wins += 1
+    
+    print(f"Game {episode+1}: {info['player_score']}-{info['opponent_score']}")
+
+print(f"\nWin Rate: {wins}/10 = {wins*10}%")
 ```
 
-## 💡 Tips
+---
 
-- **Start Simple**: Begin with default hyperparameters
-- **Monitor Training**: Always use TensorBoard to track progress
-- **Experiment**: Try different algorithms and configurations
-- **Read Code**: The example scripts are well-commented
-- **Ask Questions**: Check documentation and examples
+## 💡 Tips for Success
 
-## 🔧 Practical Examples
+1. **Start simple**: Use Phase 1 only to understand the system
+2. **Monitor training**: Always use TensorBoard to watch learning
+3. **Be patient**: Early training shows 0% win rate - this is normal
+4. **Test frequently**: Evaluate after each phase to track progress
+5. **Experiment**: Try different hyperparameters and opponents
 
-All practical examples can be found in:
-- `scripts/train_pong_agent.py` - Main training script
-- `scripts/play.py` - Play the game manually
-- `trainer/main.py` - Custom DQN implementation
-- `tests/test_gym_integration.py` - Environment tests
+---
 
-Happy Learning! 🎮🤖
+## ❓ FAQ
+
+**Q: How long does training take?**  
+A: ~4 hours for full curriculum (8 parallel environments)
+
+**Q: Can I train on CPU?**  
+A: Yes! PPO works well on CPU. GPU provides minimal benefit for this small model.
+
+**Q: Why is win rate 0% at the start?**  
+A: The agent starts with random actions. It needs ~20K steps to learn basic skills.
+
+**Q: Can I resume training?**  
+A: Yes! Use `--phase 2` or `--phase 3` to continue from saved models.
+
+**Q: How do I know if training is working?**  
+A: Check TensorBoard. `rollout/ep_rew_mean` should increase from -70 toward +30 over time.
+
+---
+
+## 🎯 Next Steps
+
+After your first successful training:
+
+1. **Read** [PPO_TRAINING.md](../docs/PPO_TRAINING.md) for deeper understanding
+2. **Experiment** with different opponents and reward structures
+3. **Contribute** improvements back to the project
+4. **Share** your trained agents and results!
+
+---
+
+**Ready? Let's train!** 🏓
+
+```bash
+source .venv/bin/activate
+PYTHONPATH=. python scripts/train_ppo_curriculum.py
+```
 

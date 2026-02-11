@@ -1,114 +1,235 @@
-# 🚀 Quick Start Guide
+# 🚀 Quick Start Guide - PPO Pong Training
 
-Get started with Pong RL Training Environment in 5 minutes!
-
-## ⚡ Installation (2 minutes)
-
-```bash
-# 1. Clone the repository
-git clone https://github.com/your-username/pong-rl-env.git
-cd pong-rl-env
-
-# 2. Create virtual environment
-python3 -m venv .venv
-source .venv/bin/activate  # Windows: .venv\Scripts\activate
-
-# 3. Install dependencies
-pip install -r requirements.txt
-
-# 4. Verify installation
-python -c "import pong, gymnasium, torch; print('✓ Ready to train!')"
-```
-
-## 🎯 Train Your First Agent (3 minutes)
-
-```bash
-# Start training (runs for 1000 episodes)
-PYTHONPATH=. python trainer/main.py
-```
-
-**What's happening:**
-- Agent learns to play Pong through trial and error
-- Checkpoints saved every 100 episodes to `checkpoints/`
-- Training stats displayed in terminal
-- TensorBoard logs saved to `tensorboard_dqn/`
-
-**Expected output:**
-```
-Episode 1/1000 | Score: -11.0 | Win: False | Epsilon: 1.00
-Episode 100/1000 | Score: -5.3 | Win: False | Epsilon: 0.87
-Episode 500/1000 | Score: 0.2 | Win: True | Epsilon: 0.50
-Episode 1000/1000 | Score: 4.1 | Win: True | Epsilon: 0.10
-```
-
-## 🎮 Test Your Agent
-
-```bash
-# Play against your trained agent
-PYTHONPATH=. python scripts/play_against_agent.py checkpoints/checkpoint_episode_1000.pth
-```
-
-**Controls:**
-- **W**: Move up
-- **S**: Move down
-- **ESC**: Quit
-
-## 📊 Monitor Training (Optional)
-
-```bash
-# In a new terminal, start TensorBoard
-tensorboard --logdir ./tensorboard_dqn/
-
-# Open http://localhost:6006 in your browser
-```
-
-## 🎓 Next Steps
-
-### Experiment with Different Algorithms
-
-```bash
-# Try Stable-Baselines3 PPO
-PYTHONPATH=. python scripts/train_pong_agent.py
-```
-
-### Customize Training
-
-Edit `trainer/config.py` to change:
-- Learning rate
-- Episode count
-- Network architecture
-- Reward function
-
-### Explore Documentation
-
-- `learn/README.md` - Comprehensive tutorials
-- `docs/README_GYM.md` - Environment specifications
-- `CONTRIBUTING.md` - How to contribute
-
-## 🐛 Troubleshooting
-
-| Problem | Solution |
-|---------|----------|
-| `ModuleNotFoundError: No module named 'pong'` | Use `PYTHONPATH=. python ...` |
-| Training is slow | Use headless mode (default) |
-| pygame errors | `pip install pygame==2.1.2` |
-| Display not found | You're good! Headless mode doesn't need display |
-
-## 💡 Pro Tips
-
-1. **Start small**: Train for 100 episodes first to verify setup
-2. **Monitor progress**: Use TensorBoard to visualize learning
-3. **Test checkpoints**: Compare different training stages
-4. **GPU acceleration**: Install CUDA PyTorch for 10x speedup
-5. **Headless mode**: Always use for serious training (it's the default)
-
-## 📞 Need Help?
-
-- 📖 Read the [full README](README.md)
-- 🐛 Check [existing issues](https://github.com/your-username/pong-rl-env/issues)
-- 💬 Start a [discussion](https://github.com/your-username/pong-rl-env/discussions)
+Get started training a Pong AI agent in **under 5 minutes**.
 
 ---
 
-**Happy training! 🎮🤖**
+## ⚡ 3-Step Setup
 
+### 1. Install
+
+```bash
+# Clone and enter directory
+cd /path/to/Pong
+
+# Create virtual environment
+python3 -m venv .venv
+source .venv/bin/activate
+
+# Install dependencies
+pip install -r requirements.txt
+```
+
+### 2. Train
+
+```bash
+# Run the 3-phase curriculum (~4 hours total)
+PYTHONPATH=. python scripts/train_ppo_curriculum.py
+```
+
+### 3. Evaluate
+
+```bash
+# Test your trained agent
+PYTHONPATH=. python scripts/evaluate_agent.py --weights models/ppo_final.zip
+```
+
+---
+
+## 📊 What to Expect
+
+### Training Progress
+
+```
+Phase 1: Easy Wins (30 minutes) - Ball 0.7x
+  → Agent learns that scoring = good
+  → Win rate vs SLOW_AI: 0% → 80%+
+
+Phase 2: Competitive (90 minutes) - Ball 0.9x
+  → Agent learns offensive shot placement
+  → Win rate vs NORMAL_AI: 0% → 50%+
+
+Phase 3: Master (2 hours) - Ball 1.0x
+  → Agent masters reactive opponent
+  → Win rate vs REACTIVE_AI: 0% → 45%+
+```
+
+### Sample Output
+
+```bash
+$ PYTHONPATH=. python scripts/train_ppo_curriculum.py
+
+🏓 PPO TRAINING WITH 3-PHASE CURRICULUM
+============================================================
+
+Phases:
+  → Phase 1: Easy Wins (50,000 steps)
+    Phase 2: Competitive (150,000 steps)
+    Phase 3: Master (200,000 steps)
+
+============================================================
+🎯 PHASE 1: Easy Wins
+============================================================
+   Opponent: slow_ai
+   Ball Speed: 0.7x
+   Target Win Rate: 80%
+   Timesteps: 50,000
+   Description: Learn that scoring = good against slow opponent
+
+📦 Creating new PPO model...
+Using cpu device
+
+🚀 Starting Phase 1 training...
+...
+```
+
+---
+
+## 🎯 Quick Commands
+
+```bash
+# === Training ===
+
+# Full curriculum (recommended)
+PYTHONPATH=. python scripts/train_ppo_curriculum.py
+
+# Train single phase
+PYTHONPATH=. python scripts/train_ppo_curriculum.py --phase 1 --single-phase
+
+# Custom parallel environments
+PYTHONPATH=. python scripts/train_ppo_curriculum.py --envs 16
+
+# === Evaluation ===
+
+# Full benchmark
+PYTHONPATH=. python scripts/evaluate_agent.py --weights models/ppo_final.zip
+
+# Specific opponent
+PYTHONPATH=. python scripts/evaluate_agent.py --weights models/ppo_final.zip --opponent normal_ai
+
+# === Monitoring ===
+
+# TensorBoard
+tensorboard --logdir ./tensorboard/
+
+# === Manual Play ===
+
+# Play Pong yourself
+PYTHONPATH=. python scripts/play.py
+```
+
+---
+
+## 🔧 Customization
+
+### Adjust Training Speed
+
+```bash
+# Faster (fewer parallel envs, less memory)
+python scripts/train_ppo_curriculum.py --envs 2
+
+# Slower but more stable
+python scripts/train_ppo_curriculum.py --envs 16
+```
+
+### Train from Checkpoint
+
+```bash
+# Continue from Phase 2
+python scripts/train_ppo_curriculum.py --phase 2
+
+# The script automatically loads the previous phase's model
+```
+
+### Custom Save Location
+
+```bash
+python scripts/train_ppo_curriculum.py --save-dir ./my_models/ --tensorboard ./my_logs/
+```
+
+---
+
+## 📈 Expected Results
+
+### Training Time (M1 Mac, 8 parallel envs)
+
+| Phase | Ball Speed | Steps | Time | Win Rate Target |
+|-------|------------|-------|------|-----------------|
+| 1 | 0.7x | 50K | 30 min | 80% vs SLOW_AI |
+| 2 | 0.9x | 150K | 90 min | 50% vs NORMAL_AI |
+| 3 | 1.0x | 200K | 2 hours | 45% vs REACTIVE_AI |
+| **Total** | - | **400K** | **~4 hours** | **Master level** |
+
+### Benchmarks
+
+After full training, expect:
+
+- ✅ **90%+ win rate** vs SLOW_AI (easy opponent)
+- ✅ **55%+ win rate** vs NORMAL_AI (competitive)
+- ✅ **45%+ win rate** vs REACTIVE_AI (master level)
+
+---
+
+## 🎮 Manual Play
+
+Test the environment yourself:
+
+```bash
+PYTHONPATH=. python scripts/play.py
+
+# Controls:
+# - W/UP ARROW: Move up
+# - S/DOWN ARROW: Move down
+# - ESC: Quit
+```
+
+---
+
+## 📚 Next Steps
+
+- **[Full Documentation](README.md)** - Complete feature list
+- **[Training Guide](docs/PPO_TRAINING.md)** - Deep dive into PPO approach
+- **[SB3 Tutorial](learn/stable_baselines3_tutorial.md)** - Learn Stable-Baselines3
+
+---
+
+## 🐛 Common Issues
+
+### `ModuleNotFoundError: No module named 'pong'`
+
+**Solution**: Use `PYTHONPATH=.` before your command:
+
+```bash
+PYTHONPATH=. python scripts/train_ppo_curriculum.py
+```
+
+### Training is very slow
+
+**Solution**: Reduce parallel environments:
+
+```bash
+python scripts/train_ppo_curriculum.py --envs 2
+```
+
+### Agent not improving
+
+**Solution**: Check TensorBoard for learning curves:
+
+```bash
+tensorboard --logdir ./tensorboard/
+```
+
+Look for:
+- `rollout/ep_rew_mean` should be increasing
+- `train/loss` should be decreasing
+- `curriculum/win_rate` should approach target
+
+---
+
+<div align="center">
+
+**Ready to train your Pong master? 🏓**
+
+Run `PYTHONPATH=. python scripts/train_ppo_curriculum.py` and let's go!
+
+</div>

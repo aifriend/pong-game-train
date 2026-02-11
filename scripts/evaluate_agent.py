@@ -1,7 +1,7 @@
 """
 Evaluation Suite for Pong AI Agent.
 
-Tests the trained agent against multiple opponent types and reports
+Evaluates trained PPO agents against multiple opponent types and reports
 performance metrics to validate master-level achievement.
 
 Master-Level Benchmarks:
@@ -11,14 +11,14 @@ Master-Level Benchmarks:
 - reactive_ai: >= 50% win rate
 
 Usage:
-    python scripts/evaluate_agent.py --weights final_weights.pth --episodes 20
+    python scripts/evaluate_agent.py --weights models/ppo_final.zip --episodes 20
 """
 
 import argparse
 import numpy as np
 import sys
 from pathlib import Path
-from typing import Dict, List, Tuple, Any
+from typing import Dict, Tuple, Any
 
 # Add project root to path
 project_root = Path(__file__).parent.parent
@@ -26,30 +26,54 @@ if str(project_root) not in sys.path:
     sys.path.insert(0, str(project_root))
 
 from pong.env.pong_headless import PongHeadlessEnv, OpponentType
-from trainer import Agent
+from stable_baselines3 import PPO
 
 
 # Master-level benchmarks
 BENCHMARKS = {
     OpponentType.SLOW_AI: 0.90,      # Should easily beat
-    OpponentType.BEGINNER_AI: 0.75,  # Phase 3 validation
-    OpponentType.NORMAL_AI: 0.55,    # Phase 4 validation
-    OpponentType.REACTIVE_AI: 0.50,  # Phase 5 validation
+    OpponentType.BEGINNER_AI: 0.75,  # Phase 1 validation
+    OpponentType.NORMAL_AI: 0.55,    # Phase 2 validation
+    OpponentType.REACTIVE_AI: 0.50,  # Phase 3 validation
 }
 
 
+def load_model(weights_path: str):
+    """
+    Load Stable-Baselines3 model from .zip file.
+    
+    Args:
+        weights_path: Path to model file (.zip)
+        
+    Returns:
+        Loaded SB3 model
+    """
+    path = Path(weights_path)
+    
+    # Add .zip if not present
+    if path.suffix != ".zip":
+        path = Path(str(path) + ".zip")
+    
+    if not path.exists():
+        raise FileNotFoundError(f"Model not found: {path}")
+    
+    model = PPO.load(str(path))
+    print(f"✅ Loaded PPO model from {path}")
+    return model
+
+
 def evaluate_against_opponent(
-    agent: Agent,
+    model,
     opponent_type: OpponentType,
     n_episodes: int = 20,
     ball_speed: float = 1.0,
     verbose: bool = True,
 ) -> Dict[str, Any]:
     """
-    Evaluate agent against a specific opponent type.
+    Evaluate model against a specific opponent type.
     
     Args:
-        agent: Trained DQN agent
+        model: Trained SB3 model
         opponent_type: Type of opponent to play against
         n_episodes: Number of evaluation episodes
         ball_speed: Ball speed multiplier
@@ -73,13 +97,10 @@ def evaluate_against_opponent(
     for ep in range(n_episodes):
         obs, info = env.reset()
         done = False
-        episode_score = 0
         
         while not done:
-            # Get action from agent (no noise during evaluation)
-            action = agent.get_action(obs, use_noise=False)
+            action, _ = model.predict(obs, deterministic=True)
             obs, reward, terminated, truncated, info = env.step(action)
-            episode_score += reward
             done = terminated or truncated
         
         # Track results
@@ -120,7 +141,7 @@ def evaluate_against_opponent(
 
 
 def run_full_evaluation(
-    agent: Agent,
+    model,
     n_episodes: int = 20,
     verbose: bool = True,
 ) -> Tuple[Dict[str, Dict[str, Any]], bool]:
@@ -128,7 +149,7 @@ def run_full_evaluation(
     Run full evaluation against all opponent types.
     
     Args:
-        agent: Trained DQN agent
+        model: Trained SB3 model
         n_episodes: Episodes per opponent
         verbose: Print progress
         
@@ -153,7 +174,7 @@ def run_full_evaluation(
         print(f"\n📊 Evaluating vs {name}...")
         
         result = evaluate_against_opponent(
-            agent,
+            model,
             opponent_type,
             n_episodes,
             verbose=verbose,
@@ -197,12 +218,14 @@ def run_full_evaluation(
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Evaluate Pong AI agent")
+    parser = argparse.ArgumentParser(
+        description="Evaluate Pong AI agent (Stable-Baselines3 models)"
+    )
     parser.add_argument(
         "--weights",
         type=str,
-        default="final_weights.pth",
-        help="Path to weights file",
+        default="models/ppo_final.zip",
+        help="Path to model file (.zip)",
     )
     parser.add_argument(
         "--episodes",
@@ -215,32 +238,60 @@ def main():
         action="store_true",
         help="Suppress per-episode output",
     )
+    parser.add_argument(
+        "--opponent",
+        type=str,
+        default=None,
+        choices=["slow_ai", "beginner_ai", "normal_ai", "reactive_ai"],
+        help="Evaluate against specific opponent only",
+    )
     args = parser.parse_args()
     
-    # Load agent
-    print(f"Loading agent from {args.weights}...")
-    
-    agent = Agent(
-        possible_actions=[0, 1, 2],
-        starting_mem_len=1000,
-        max_mem_len=10000,
-        learn_rate=0.001,
-        observation_dim=9,
-    )
+    # Load model
+    print(f"Loading model from {args.weights}...")
     
     try:
-        agent.load_weights(args.weights)
-        print("✅ Weights loaded successfully")
-    except FileNotFoundError:
-        print(f"❌ Weights file not found: {args.weights}")
-        return
+        model = load_model(args.weights)
+    except FileNotFoundError as e:
+        print(f"❌ {e}")
+        return 1
+    except ValueError as e:
+        print(f"❌ {e}")
+        return 1
     except Exception as e:
-        print(f"❌ Error loading weights: {e}")
-        return
+        print(f"❌ Error loading model: {e}")
+        return 1
     
-    # Run evaluation
+    # Single opponent evaluation
+    if args.opponent:
+        opponent_mapping = {
+            "slow_ai": OpponentType.SLOW_AI,
+            "beginner_ai": OpponentType.BEGINNER_AI,
+            "normal_ai": OpponentType.NORMAL_AI,
+            "reactive_ai": OpponentType.REACTIVE_AI,
+        }
+        opponent_type = opponent_mapping[args.opponent]
+        
+        print(f"\n📊 Evaluating vs {args.opponent}...")
+        result = evaluate_against_opponent(
+            model,
+            opponent_type,
+            n_episodes=args.episodes,
+            verbose=not args.quiet,
+        )
+        
+        benchmark = BENCHMARKS.get(opponent_type, 0.5)
+        passed = result["win_rate"] >= benchmark
+        status = "✅ PASS" if passed else "❌ FAIL"
+        
+        print(f"\n  Win Rate: {result['win_rate']*100:.1f}% (benchmark: {benchmark*100:.0f}%) {status}")
+        print(f"  Record: {result['wins']}-{result['losses']}")
+        
+        return 0 if passed else 1
+    
+    # Full evaluation
     results, passed = run_full_evaluation(
-        agent,
+        model,
         n_episodes=args.episodes,
         verbose=not args.quiet,
     )
@@ -251,4 +302,3 @@ def main():
 
 if __name__ == "__main__":
     exit(main() or 0)
-

@@ -1,21 +1,20 @@
-"""Setup script for Pong Gym Environment."""
+"""Setup script for Pong PPO Training Environment."""
 from setuptools import setup, find_packages
 
-with open("docs/README_GYM.md", "r", encoding="utf-8") as fh:
+with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 
 with open("requirements.txt", "r", encoding="utf-8") as fh:
     requirements = [line.strip() for line in fh if line.strip() and not line.startswith("#")]
 
 setup(
-    name="pong-rl-env",
-    version="1.0.0",
-    author="Your Name",
-    author_email="your.email@example.com",
-    description="A comprehensive Pong reinforcement learning environment with Double DQN and Stable-Baselines3 support",
+    name="pong-ppo-env",
+    version="2.0.0",
+    author="Pong RL Contributors",
+    description="Fast Pong RL environment optimized for PPO training with win-focused rewards",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/your-username/pong-rl-env",
+    url="https://github.com/your-username/pong-ppo-env",
     packages=find_packages(),
     classifiers=[
         "Development Status :: 4 - Beta",
@@ -28,6 +27,7 @@ setup(
         "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
         "Programming Language :: Python :: 3.11",
+        "Programming Language :: Python :: 3.12",
         "Topic :: Games/Entertainment",
         "Topic :: Scientific/Engineering :: Artificial Intelligence",
     ],
@@ -38,17 +38,17 @@ setup(
             "pytest>=6.0",
             "black>=22.0",
             "flake8>=4.0",
-            "mypy>=0.950",
         ],
     },
     entry_points={
         "console_scripts": [
-            "pong-gym-test=pong.env.pong_gym_env:register_pong_env",
+            "pong-train=scripts.train_ppo_curriculum:main",
+            "pong-eval=scripts.evaluate_agent:main",
             "pong-play=scripts.play:main",
         ],
     },
     include_package_data=True,
     package_data={
-        "": ["resources/*"],
+        "pong": ["resources/*"],
     },
 )

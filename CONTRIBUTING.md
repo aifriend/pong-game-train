@@ -83,10 +83,10 @@ We use the following tools to maintain code quality:
 
 ```bash
 # Format code
-black pong/ trainer/ scripts/ tests/
+black pong/ scripts/ tests/
 
 # Check linting
-flake8 pong/ trainer/ scripts/ tests/
+flake8 pong/ scripts/ tests/
 
 # Type checking (optional)
 mypy pong/

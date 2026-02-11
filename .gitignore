@@ -21,12 +21,13 @@ wheels/
 *.egg
 MANIFEST
 
-# Virtual Environments
+# Virtual Environments (uv creates .venv automatically)
 .venv/
 venv/
 /ENV/
 /env/
 .virtualenv
+.python-version
 
 # PyCharm
 .idea/

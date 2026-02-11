@@ -45,26 +45,21 @@ A production-ready reinforcement learning environment for training AI agents to 
 git clone <your-repo-url>
 cd Pong
 
-# Create virtual environment
-python3 -m venv .venv
-source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+# Install uv (if not already installed)
+curl -LsSf https://astral.sh/uv/install.sh | sh
 
 # Install dependencies
-pip install --upgrade pip
-pip install -r requirements.txt
+uv sync
 ```
 
 ### Train Agent
 
 ```bash
-# Activate environment
-source .venv/bin/activate
-
 # Run full 5-phase curriculum
-PYTHONPATH=. python scripts/train_ppo_curriculum.py
+uv run python scripts/train_ppo_curriculum.py
 
 # Or train single phase
-PYTHONPATH=. python scripts/train_ppo_curriculum.py --phase 1 --single-phase
+uv run python scripts/train_ppo_curriculum.py --phase 1 --single-phase
 ```
 
 ### 🔄 Resuming Training
@@ -72,17 +67,14 @@ PYTHONPATH=. python scripts/train_ppo_curriculum.py --phase 1 --single-phase
 If you've already started training and want to continue from where you left off:
 
 ```bash
-# 1. Activate environment
-source .venv/bin/activate
-
-# 2. Check which phases are completed
+# 1. Check which phases are completed
 ls models/ | grep "ppo_phase.*_final.zip"
 
-# 3. Resume from a specific phase (automatically loads previous phase model)
-PYTHONPATH=. python scripts/train_ppo_curriculum.py --phase 3
+# 2. Resume from a specific phase (automatically loads previous phase model)
+uv run python scripts/train_ppo_curriculum.py --phase 3
 
 # Or continue full curriculum (starts from phase 1, but loads existing models)
-PYTHONPATH=. python scripts/train_ppo_curriculum.py
+uv run python scripts/train_ppo_curriculum.py
 ```
 
 **Note**: The training script automatically loads the previous phase's model when you specify `--phase` with a phase number > 1. For example, `--phase 3` will automatically load `ppo_phase2_final.zip` if it exists.
@@ -91,10 +83,10 @@ PYTHONPATH=. python scripts/train_ppo_curriculum.py
 
 ```bash
 # Full evaluation against all opponents
-PYTHONPATH=. python scripts/evaluate_agent.py --weights models/ppo_final.zip
+uv run python scripts/evaluate_agent.py --weights models/ppo_final.zip
 
 # Test against specific opponent
-PYTHONPATH=. python scripts/evaluate_agent.py --weights models/ppo_final.zip --opponent reactive_ai
+uv run python scripts/evaluate_agent.py --weights models/ppo_final.zip --opponent reactive_ai
 ```
 
 ### Monitor Training
@@ -157,7 +149,7 @@ The agent progresses through 5 phases with ~10% opponent speed increments, gradu
 ### Example Evaluation
 
 ```bash
-$ PYTHONPATH=. python scripts/evaluate_agent.py --weights models/ppo_final.zip --episodes 30
+$ uv run python scripts/evaluate_agent.py --weights models/ppo_final.zip --episodes 30
 ```
 
 ---
@@ -287,13 +279,13 @@ while True:
 
 ```bash
 # Test environment
-PYTHONPATH=. python pong/env/pong_headless.py
+uv run python pong/env/pong_headless.py
 
 # Run test suite
-PYTHONPATH=. python -m pytest tests/ -v
+uv run pytest tests/ -v
 
 # Quick smoke test
-PYTHONPATH=. python -c "
+uv run python -c "
 from pong.env.wrappers import make_ppo_env
 from pong.env.pong_headless import OpponentType
 env = make_ppo_env(OpponentType.SLOW_AI)
@@ -308,7 +300,7 @@ print(f'✓ Environment working! Obs shape: {obs.shape}')
 
 | Issue | Solution |
 |-------|----------|
-| `ModuleNotFoundError: No module named 'pong'` | Use `PYTHONPATH=.` before commands |
+| `ModuleNotFoundError: No module named 'pong'` | Use `uv run` to run commands (it sets up the path automatically) |
 | Training very slow | Increase `--envs` or check CPU usage |
 | Out of memory | Reduce `--envs` to 2-4 |
 | Agent not improving | Check TensorBoard for learning curves |

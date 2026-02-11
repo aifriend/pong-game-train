@@ -39,7 +39,7 @@ Paste error logs here
 - **Python Version:** [e.g., 3.10.5]
 - **Package Versions:**
   ```bash
-  pip list | grep -E "pygame|gymnasium|torch|stable-baselines3"
+  uv pip list | grep -E "pygame|gymnasium|torch|stable-baselines3"
   ```
 
 ## 📋 Additional Context

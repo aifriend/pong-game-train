@@ -12,26 +12,25 @@ Get started training a Pong AI agent in **under 5 minutes**.
 # Clone and enter directory
 cd /path/to/Pong
 
-# Create virtual environment
-python3 -m venv .venv
-source .venv/bin/activate
+# Install uv (if not already installed)
+curl -LsSf https://astral.sh/uv/install.sh | sh
 
 # Install dependencies
-pip install -r requirements.txt
+uv sync
 ```
 
 ### 2. Train
 
 ```bash
-# Run the 3-phase curriculum (~4 hours total)
-PYTHONPATH=. python scripts/train_ppo_curriculum.py
+# Run the 5-phase curriculum (~15 min on M1 Mac)
+uv run python scripts/train_ppo_curriculum.py
 ```
 
 ### 3. Evaluate
 
 ```bash
 # Test your trained agent
-PYTHONPATH=. python scripts/evaluate_agent.py --weights models/ppo_final.zip
+uv run python scripts/evaluate_agent.py --weights models/ppo_final.zip
 ```
 
 ---
@@ -57,7 +56,7 @@ Phase 3: Master (2 hours) - Ball 1.0x
 ### Sample Output
 
 ```bash
-$ PYTHONPATH=. python scripts/train_ppo_curriculum.py
+$ uv run python scripts/train_ppo_curriculum.py
 
 🏓 PPO TRAINING WITH 3-PHASE CURRICULUM
 ============================================================
@@ -91,31 +90,31 @@ Using cpu device
 # === Training ===
 
 # Full curriculum (recommended)
-PYTHONPATH=. python scripts/train_ppo_curriculum.py
+uv run python scripts/train_ppo_curriculum.py
 
 # Train single phase
-PYTHONPATH=. python scripts/train_ppo_curriculum.py --phase 1 --single-phase
+uv run python scripts/train_ppo_curriculum.py --phase 1 --single-phase
 
 # Custom parallel environments
-PYTHONPATH=. python scripts/train_ppo_curriculum.py --envs 16
+uv run python scripts/train_ppo_curriculum.py --envs 16
 
 # === Evaluation ===
 
 # Full benchmark
-PYTHONPATH=. python scripts/evaluate_agent.py --weights models/ppo_final.zip
+uv run python scripts/evaluate_agent.py --weights models/ppo_final.zip
 
 # Specific opponent
-PYTHONPATH=. python scripts/evaluate_agent.py --weights models/ppo_final.zip --opponent normal_ai
+uv run python scripts/evaluate_agent.py --weights models/ppo_final.zip --opponent normal_ai
 
 # === Monitoring ===
 
 # TensorBoard
-tensorboard --logdir ./tensorboard/
+uv run tensorboard --logdir ./tensorboard/
 
-# === Manual Play ===
+# === Play against AI ===
 
-# Play Pong yourself
-PYTHONPATH=. python scripts/play.py
+# Play against the trained PPO model
+./play.sh
 ```
 
 ---
@@ -126,17 +125,17 @@ PYTHONPATH=. python scripts/play.py
 
 ```bash
 # Faster (fewer parallel envs, less memory)
-python scripts/train_ppo_curriculum.py --envs 2
+uv run python scripts/train_ppo_curriculum.py --envs 2
 
 # Slower but more stable
-python scripts/train_ppo_curriculum.py --envs 16
+uv run python scripts/train_ppo_curriculum.py --envs 16
 ```
 
 ### Train from Checkpoint
 
 ```bash
 # Continue from Phase 2
-python scripts/train_ppo_curriculum.py --phase 2
+uv run python scripts/train_ppo_curriculum.py --phase 2
 
 # The script automatically loads the previous phase's model
 ```
@@ -144,7 +143,7 @@ python scripts/train_ppo_curriculum.py --phase 2
 ### Custom Save Location
 
 ```bash
-python scripts/train_ppo_curriculum.py --save-dir ./my_models/ --tensorboard ./my_logs/
+uv run python scripts/train_ppo_curriculum.py --save-dir ./my_models/ --tensorboard ./my_logs/
 ```
 
 ---
@@ -175,11 +174,14 @@ After full training, expect:
 Test the environment yourself:
 
 ```bash
-PYTHONPATH=. python scripts/play.py
+# Play against the trained PPO model
+./play.sh
+
+# Or play the basic version
+uv run python scripts/play.py
 
 # Controls:
-# - W/UP ARROW: Move up
-# - S/DOWN ARROW: Move down
+# - UP/DOWN ARROW: Move paddle
 # - ESC: Quit
 ```
 
@@ -197,10 +199,10 @@ PYTHONPATH=. python scripts/play.py
 
 ### `ModuleNotFoundError: No module named 'pong'`
 
-**Solution**: Use `PYTHONPATH=.` before your command:
+**Solution**: Use `uv run` to run commands (it sets up the path automatically):
 
 ```bash
-PYTHONPATH=. python scripts/train_ppo_curriculum.py
+uv run python scripts/train_ppo_curriculum.py
 ```
 
 ### Training is very slow
@@ -208,7 +210,7 @@ PYTHONPATH=. python scripts/train_ppo_curriculum.py
 **Solution**: Reduce parallel environments:
 
 ```bash
-python scripts/train_ppo_curriculum.py --envs 2
+uv run python scripts/train_ppo_curriculum.py --envs 2
 ```
 
 ### Agent not improving
@@ -216,7 +218,7 @@ python scripts/train_ppo_curriculum.py --envs 2
 **Solution**: Check TensorBoard for learning curves:
 
 ```bash
-tensorboard --logdir ./tensorboard/
+uv run tensorboard --logdir ./tensorboard/
 ```
 
 Look for:
@@ -230,6 +232,6 @@ Look for:
 
 **Ready to train your Pong master? 🏓**
 
-Run `PYTHONPATH=. python scripts/train_ppo_curriculum.py` and let's go!
+Run `uv run python scripts/train_ppo_curriculum.py` and let's go!
 
 </div>

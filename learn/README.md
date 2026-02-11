@@ -182,7 +182,6 @@ After your first successful training:
 **Ready? Let's train!** 🏓
 
 ```bash
-source .venv/bin/activate
-PYTHONPATH=. python scripts/train_ppo_curriculum.py
+uv run python scripts/train_ppo_curriculum.py
 ```
 

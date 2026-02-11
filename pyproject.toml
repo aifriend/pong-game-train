@@ -1,0 +1,59 @@
+[project]
+name = "pong-ppo-env"
+version = "2.0.0"
+description = "Fast Pong RL environment optimized for PPO training with win-focused rewards"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.8"
+authors = [
+    { name = "Pong RL Contributors" },
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Games/Entertainment",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+dependencies = [
+    "pygame>=2.5.0",
+    "gymnasium>=0.29.0",
+    "numpy>=1.21.0",
+    "stable-baselines3>=2.0.0",
+    "matplotlib>=3.5.0",
+    "torch>=2.0.0",
+    "tensorboard>=2.10.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=6.0",
+    "black>=22.0",
+    "flake8>=4.0",
+]
+
+[project.scripts]
+pong-train = "scripts.train_ppo_curriculum:main"
+pong-eval = "scripts.evaluate_agent:main"
+pong-play = "scripts.play:main"
+
+[project.urls]
+Homepage = "https://github.com/aifriend/pong-ppo-env"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["pong"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

@@ -29,13 +29,12 @@ Stable-Baselines3 (SB3) is a set of reliable implementations of reinforcement le
 ## Installation
 
 ```bash
+# All dependencies are managed via uv - just run:
+uv sync
+
+# Or install manually with pip:
 pip install stable-baselines3[extra]
 # The [extra] includes additional dependencies like tensorboard
-```
-
-Or with your requirements:
-```bash
-pip install stable-baselines3>=2.0.0 tensorboard>=2.10.0
 ```
 
 ---

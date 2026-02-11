@@ -39,38 +39,36 @@ Enhancement suggestions are tracked as GitHub issues. When creating an enhanceme
 
 - Python 3.8 or higher
 - Git
-- Virtual environment tool (venv, conda, etc.)
+- [uv](https://docs.astral.sh/uv/) package manager
 
 ### Setup Steps
 
 ```bash
+# Install uv (if not already installed)
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
 # Clone your fork
 git clone https://github.com/your-username/pong-rl-env.git
 cd pong-rl-env
 
-# Create virtual environment
-python -m venv .venv
-source .venv/bin/activate  # On Windows: .venv\Scripts\activate
-
-# Install in development mode with dev dependencies
-pip install -e ".[dev]"
+# Install all dependencies (including dev)
+uv sync --extra dev
 
 # Install pre-commit hooks (optional but recommended)
-pip install pre-commit
-pre-commit install
+uv run pre-commit install
 ```
 
 ## 🧪 Running Tests
 
 ```bash
 # Run all tests
-python -m pytest tests/ -v
+uv run pytest tests/ -v
 
 # Run specific test file
-python -m pytest tests/test_gym_integration.py -v
+uv run pytest tests/test_ppo_environment.py -v
 
 # Run with coverage
-python -m pytest tests/ --cov=pong --cov-report=html
+uv run pytest tests/ --cov=pong --cov-report=html
 ```
 
 ## 📝 Code Style
@@ -83,13 +81,13 @@ We use the following tools to maintain code quality:
 
 ```bash
 # Format code
-black pong/ scripts/ tests/
+uv run black pong/ scripts/ tests/
 
 # Check linting
-flake8 pong/ scripts/ tests/
+uv run flake8 pong/ scripts/ tests/
 
 # Type checking (optional)
-mypy pong/
+uv run mypy pong/
 ```
 
 ### Code Style Guidelines

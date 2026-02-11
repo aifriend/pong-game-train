@@ -168,11 +168,8 @@ The REACTIVE_AI opponent predicts where the ball will arrive, but only activates
 ### Quick Start
 
 ```bash
-# Activate virtual environment
-source .venv/bin/activate
-
 # Run full curriculum (all 5 phases)
-PYTHONPATH=. python scripts/train_ppo_curriculum.py
+uv run python scripts/train_ppo_curriculum.py
 ```
 
 ### Training Options

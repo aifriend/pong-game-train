@@ -57,7 +57,7 @@ The curriculum uses **graduated difficulty** with **small increments (~10% oppon
 - **Goal**: Bootstrap motor skills - learn to hit ball and score
 - **Target Win Rate**: 60%
 
-High hit reward teaches the agent to make contact with the ball. Strong pressure shaping guides offensive placement.
+High hit reward teaches the agent to make contact with the ball. Pressure shaping, paid once per return, guides offensive placement.
 
 ### Phase 2: Beginner (100K steps)
 
@@ -124,8 +124,9 @@ The `WinFocusedRewardWrapper` provides **graduated reward shaping** that transit
 - Phase 3: +0.1 (minimal)
 - Phase 4-5: +0.05 (prevents value function collapse)
 
-### Offensive Rewards (when ball moving toward opponent)
-- **Pressure shaping**: +0.15 → +0.08 (decaying) when ball heading where opponent ISN'T
+### Offensive Reward (paid once, when the player returns the ball)
+- **Pressure shaping**: +0.15 → +0.08 (decaying) when the return heads where opponent ISN'T
+  - Paid ONCE per return, not on every step the ball travels toward the opponent
   - Predicts ball y-intersection at opponent's x using wall-bounce reflection
   - Rewards proportional to distance from opponent paddle
 
@@ -297,8 +298,10 @@ WinFocusedRewardWrapper(
 ### Phase Gating
 
 Phase advancement uses **deterministic evaluation** to ensure stable policy assessment:
-- 20 evaluation episodes per check
-- 30 episodes for final evaluation
+- 100 evaluation episodes per check, with greedy (deterministic) actions
+- 100 episodes for final evaluation as well, since it gates the same decision
+- 100 episodes give a standard error near 4.6 percentage points at a 30% win
+  rate, against 10.2 points with 20 episodes
 - Must hit target 2 consecutive times for early advancement
 - 5x step budget multiplier before giving up on a phase
 

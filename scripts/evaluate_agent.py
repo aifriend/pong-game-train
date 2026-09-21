@@ -90,6 +90,9 @@ def evaluate_against_opponent(
     
     wins = 0
     losses = 0
+    draws = 0
+    completed = 0        # episodes where somebody actually reached max_score
+    completed_wins = 0
     total_score_diff = 0
     total_rallies = 0
     rally_counts = []
@@ -97,6 +100,7 @@ def evaluate_against_opponent(
     for ep in range(n_episodes):
         obs, info = env.reset()
         done = False
+        terminated = False
         
         while not done:
             action, _ = model.predict(obs, deterministic=True)
@@ -107,10 +111,21 @@ def evaluate_against_opponent(
         player_score = info.get("player_score", 0)
         opponent_score = info.get("opponent_score", 0)
         
+        # Three distinct outcomes by final score. The else branch used to call
+        # every non-win a loss, so a draw counted as a defeat.
         if player_score > opponent_score:
             wins += 1
-        else:
+        elif opponent_score > player_score:
             losses += 1
+        else:
+            draws += 1
+        
+        # Only a terminated episode reached a real conclusion; hitting the step
+        # cap means nobody reached max_score.
+        if terminated:
+            completed += 1
+            if player_score > opponent_score:
+                completed_wins += 1
         
         total_score_diff += player_score - opponent_score
         avg_rally = info.get("avg_rally", 0)
@@ -118,8 +133,14 @@ def evaluate_against_opponent(
         rally_counts.append(avg_rally)
         
         if verbose:
-            result = "WIN" if player_score > opponent_score else "LOSS"
-            print(f"  Episode {ep+1}/{n_episodes}: {result} ({player_score}-{opponent_score})")
+            if player_score > opponent_score:
+                result = "WIN"
+            elif opponent_score > player_score:
+                result = "LOSS"
+            else:
+                result = "DRAW"
+            tag = "" if terminated else "  [unfinished]"
+            print(f"  Episode {ep+1}/{n_episodes}: {result} ({player_score}-{opponent_score}){tag}")
     
     env.close()
     
@@ -133,7 +154,14 @@ def evaluate_against_opponent(
         "n_episodes": n_episodes,
         "wins": wins,
         "losses": losses,
+        "draws": draws,
+        "unfinished": n_episodes - completed,
         "win_rate": win_rate,
+        # Win rate over the episodes that actually finished; None when none of
+        # them did. win_rate itself is unchanged so the benchmark exit codes
+        # keep their meaning.
+        "decided_win_rate": (completed_wins / completed) if completed else None,
+        "unfinished_rate": (n_episodes - completed) / n_episodes,
         "avg_score_diff": avg_score_diff,
         "avg_rally": avg_rally,
         "rally_std": rally_std,
@@ -191,7 +219,7 @@ def run_full_evaluation(
         status = "✅ PASS" if passed else "❌ FAIL"
         print(f"\n  Results vs {name}:")
         print(f"    Win Rate: {result['win_rate']*100:.1f}% (benchmark: {benchmark*100:.0f}%) {status}")
-        print(f"    Record: {result['wins']}-{result['losses']}")
+        print(f"    Record: {result['wins']}W-{result['losses']}L-{result['draws']}D, {result['unfinished']} unfinished")
         print(f"    Avg Score Diff: {result['avg_score_diff']:+.1f}")
         print(f"    Avg Rally: {result['avg_rally']:.1f} (σ={result['rally_std']:.2f})")
     
@@ -285,7 +313,7 @@ def main():
         status = "✅ PASS" if passed else "❌ FAIL"
         
         print(f"\n  Win Rate: {result['win_rate']*100:.1f}% (benchmark: {benchmark*100:.0f}%) {status}")
-        print(f"  Record: {result['wins']}-{result['losses']}")
+        print(f"  Record: {result['wins']}W-{result['losses']}L-{result['draws']}D, {result['unfinished']} unfinished")
         
         return 0 if passed else 1
     

@@ -15,7 +15,7 @@ Curriculum Phases:
 Key features:
 - Gradual opponent speed ramp with small increments (~10% each)
 - Graduated reward shaping: high hit+pressure → pure win-focus
-- Strong pressure_scale (0.15) decaying to 0.05 for offensive guidance
+- Pressure shaping paid once per return (0.15 decaying to 0.08), not per step
 - Learning rate & entropy decay across phases
 - Regression detection (stops if agent forgets basics)
 - Parallel environments for faster training
@@ -55,8 +55,11 @@ from pong.env.wrappers import WinFocusedRewardWrapper, EpisodeStatsWrapper
 
 # 5-Phase Curriculum Configuration
 # Small difficulty increments (~10% speed per phase) + graduated reward shaping
-# Key insight: pressure_scale must be STRONG (0.15) to guide offensive play,
-# and hit_reward should fade gradually so the agent always has learning signal.
+# pressure_scale is the WHOLE payment for one return, not a per-step rate, so
+# at 0.15 a perfectly placed return is worth 3% of the 5.0 point reward. These
+# values are inherited from when pressure accumulated every step and have not
+# been retuned for one-shot payment.
+# hit_reward should fade gradually so the agent always has learning signal.
 CURRICULUM_PHASES = {
     1: {
         "name": "Easy Wins",
@@ -573,7 +576,14 @@ def train_phase(
     else:
         print("Loading model from previous phase...")
         # Update hyperparameters for this phase (LR/entropy decay)
+        # Assigning model.learning_rate alone has NO effect: Stable-Baselines3
+        # builds self.lr_schedule once inside _setup_model(), and
+        # _update_learning_rate() reads that schedule, not the attribute.
+        # Rebuilding the schedule makes the new rate reach the optimizer,
+        # because PPO.train() calls _update_learning_rate(self.policy.optimizer)
+        # at the start of every update phase.
         model.learning_rate = phase_config["learning_rate"]
+        model._setup_lr_schedule()
         model.ent_coef = phase_config["ent_coef"]
         model.set_env(train_env)
     
@@ -657,14 +667,19 @@ def train_phase(
                 print("  Halting phase due to regression.")
                 break
             
-            # Evaluate after chunk (DETERMINISTIC for stable gating)
+            # Evaluate after chunk. The gate is a decision, so it uses
+            # deterministic (greedy) actions and enough episodes to be readable:
+            # 100 episodes give a standard error near 4.6 percentage points at a
+            # 30% win rate, against 10.2 points with 20 episodes. Episodes still
+            # differ because the environment draws a new random ball launch on
+            # every reset and is never re-seeded here.
             eval_results = evaluate_model(
-                model, 
-                phase_config["opponent_type"], 
+                model,
+                phase_config["opponent_type"],
                 ball_speed=phase_config["ball_speed"],
                 max_steps=5000,
-                n_episodes=20, 
-                deterministic=False,  # Deterministic for phase gating
+                n_episodes=100,
+                deterministic=True,
                 verbose=False
             )
             current_win_rate = eval_results["win_rate"]
@@ -672,7 +687,9 @@ def train_phase(
             
             # Clean single-line evaluation result
             pct = total_timesteps_trained / max_timesteps * 100
-            record = f"{eval_results['wins']}-{eval_results['losses']}"
+            record = (f"{eval_results['wins']}W-{eval_results['losses']}L"
+                      f"-{eval_results['draws']}D, "
+                      f"{eval_results['unfinished']} unfinished")
             
             if current_win_rate >= target_rate:
                 consecutive_target_hits += 1
@@ -697,16 +714,19 @@ def train_phase(
     
     elapsed = time.time() - start_time
     
-    # Final evaluation to determine if target is achieved (DETERMINISTIC)
+    # Final evaluation: this sets target_achieved, which run_full_curriculum
+    # uses to decide whether the next phase starts, so it is the same decision
+    # as the per-chunk gate and uses the same settings (greedy actions,
+    # 100 episodes).
     if not target_achieved:
         print(f"\nFinal evaluation for Phase {phase}...")
         final_eval = evaluate_model(
-            model, 
-            phase_config["opponent_type"], 
+            model,
+            phase_config["opponent_type"],
             ball_speed=phase_config["ball_speed"],
             max_steps=5000,
-            n_episodes=30,  # More episodes for reliable result
-            deterministic=False,  # Deterministic for phase gating
+            n_episodes=100,
+            deterministic=True,
             verbose=False
         )
         final_win_rate = final_eval["win_rate"]
@@ -769,11 +789,16 @@ def evaluate_model(
     )
     
     wins = 0
+    losses = 0
+    draws = 0
+    completed = 0        # episodes where somebody actually reached max_score
+    completed_wins = 0
     total_score_diff = 0
     
     for ep in range(n_episodes):
         obs, info = env.reset()
         done = False
+        terminated = False
         
         while not done:
             action, _ = model.predict(obs, deterministic=deterministic)
@@ -783,14 +808,34 @@ def evaluate_model(
         player_score = info.get("player_score", 0)
         opponent_score = info.get("opponent_score", 0)
         
+        # Three distinct outcomes by final score. Previously anything that was
+        # not a win was reported as a loss, so a draw - including a 0-0 game
+        # that simply ran out of steps - was indistinguishable from a defeat.
         if player_score > opponent_score:
             wins += 1
+        elif opponent_score > player_score:
+            losses += 1
+        else:
+            draws += 1
+        
+        # An episode only reached a real conclusion if it terminated. Hitting
+        # the step cap means nobody reached max_score, whatever the score was.
+        if terminated:
+            completed += 1
+            if player_score > opponent_score:
+                completed_wins += 1
         
         total_score_diff += player_score - opponent_score
         
         if verbose:
-            result = "WIN" if player_score > opponent_score else "LOSS"
-            print(f"  Episode {ep+1}/{n_episodes}: {result} ({player_score}-{opponent_score})")
+            if player_score > opponent_score:
+                result = "WIN"
+            elif opponent_score > player_score:
+                result = "LOSS"
+            else:
+                result = "DRAW"
+            tag = "" if terminated else "  [unfinished]"
+            print(f"  Episode {ep+1}/{n_episodes}: {result} ({player_score}-{opponent_score}){tag}")
     
     env.close()
     
@@ -802,8 +847,20 @@ def evaluate_model(
         "n_episodes": n_episodes,
         "deterministic": deterministic,
         "wins": wins,
-        "losses": n_episodes - wins,
+        # Real defeats only. This used to be n_episodes - wins, which silently
+        # folded draws and unfinished games into the loss count.
+        "losses": losses,
+        "draws": draws,
+        "unfinished": n_episodes - completed,
+        # win_rate keeps its original meaning - the share of episodes that
+        # ended with the agent ahead on points - so phase gating and the
+        # benchmark thresholds decide exactly what they decided before.
         "win_rate": wins / n_episodes,
+        # Win rate over the episodes that actually finished. None when none of
+        # them did, which is the signal that max_steps is too low rather than
+        # that the agent is weak.
+        "decided_win_rate": (completed_wins / completed) if completed else None,
+        "unfinished_rate": (n_episodes - completed) / n_episodes,
         "avg_score_diff": total_score_diff / n_episodes,
     }
 
@@ -893,7 +950,9 @@ def run_full_curriculum(
     print("\nFINAL RESULTS:")
     for opponent in [OpponentType.SLOW_AI, OpponentType.BEGINNER_AI, OpponentType.NORMAL_AI, OpponentType.REACTIVE_AI]:
         results = evaluate_model(model, opponent, n_episodes=20, deterministic=False, verbose=False)
-        print(f"  vs {opponent.value}: {results['win_rate']*100:.0f}% ({results['wins']}-{results['losses']})")
+        print(f"  vs {opponent.value}: {results['win_rate']*100:.0f}% "
+              f"({results['wins']}W-{results['losses']}L-{results['draws']}D, "
+              f"{results['unfinished']} unfinished)")
     
     # Save final model
     final_path = os.path.join(save_dir, "ppo_final")

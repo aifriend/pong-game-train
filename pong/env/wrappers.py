@@ -9,12 +9,19 @@ import numpy as np
 from typing import Tuple, Dict, Any
 
 
+# Fallback court aspect ratio (screen_width / screen_height) for the rare case
+# where the wrapped environment exposes no GameConfig. It matches the default
+# court of 960 x 720 pixels. See WinFocusedRewardWrapper.__init__ for why the
+# trajectory prediction needs this ratio.
+DEFAULT_COURT_ASPECT = 960.0 / 720.0
+
+
 class WinFocusedRewardWrapper(gym.Wrapper):
     """
     Reward wrapper focused on WINNING, not rallying.
     
-    Offensive rewards (every step when ball moving toward opponent):
-    - Pressure reward: positive when ball is heading where opponent ISN'T
+    Offensive reward (paid ONCE, when the player returns the ball):
+    - Pressure reward: positive when the return heads where the opponent ISN'T
     
     Defensive rewards (every step when ball moving toward player):
     - Tracking reward: small positive when paddle is aligned with ball
@@ -59,7 +66,22 @@ class WinFocusedRewardWrapper(gym.Wrapper):
         self.tracking_reward = tracking_reward
         self.step_penalty = step_penalty
         self.pressure_scale = pressure_scale
-        
+
+        # The observation normalizes x by screen_width and y by screen_height,
+        # but divides BOTH velocity components by one shared max_speed. A flight
+        # time derived from normalized x therefore yields vertical travel in
+        # units of screen_width; converting it to units of screen_height needs
+        # the factor screen_width / screen_height. Resolve it once here so the
+        # per-step prediction stays cheap.
+        base_env = getattr(env, "unwrapped", env)
+        base_config = getattr(base_env, "config", None)
+        screen_width = getattr(base_config, "screen_width", 0)
+        screen_height = getattr(base_config, "screen_height", 0)
+        if screen_width > 0 and screen_height > 0:
+            self._court_aspect = float(screen_width) / float(screen_height)
+        else:
+            self._court_aspect = DEFAULT_COURT_ASPECT
+
         # Track state for reward calculation
         self._prev_player_score = 0
         self._prev_opponent_score = 0
@@ -106,8 +128,10 @@ class WinFocusedRewardWrapper(gym.Wrapper):
         
         t = -ball_x / ball_vx
         
-        # Predicted y without bounces
-        predicted_y = ball_y + ball_vy * t
+        # Predicted y without bounces. The aspect factor converts the vertical
+        # travel, which the shared velocity scale expresses in units of
+        # screen_width, into units of screen_height (see __init__).
+        predicted_y = ball_y + ball_vy * t * self._court_aspect
         
         # Apply wall bounces (reflect off top/bottom walls at y=0 and y=1)
         # Use modular arithmetic with reflection
@@ -137,20 +161,18 @@ class WinFocusedRewardWrapper(gym.Wrapper):
         
         reward = 0.0
         
-        # === OFFENSIVE REWARDS (when ball moving toward opponent) ===
+        # A point ends the current ball: the environment relaunches it before
+        # returning this observation, so a negative ball_vx on this step can be
+        # a fresh serve rather than a return the player played. Used below to
+        # withhold the pressure payment on such a step.
+        scored_this_step = (
+            player_score > self._prev_player_score
+            or opponent_score > self._prev_opponent_score
+        )
         
-        if ball_vx < 0 and self.pressure_scale > 0:
-            # Ball is moving toward opponent - reward placing it where they aren't
-            predicted_y = self._predict_ball_y_at_opponent(ball_x, ball_y, ball_vx, ball_vy)
-            
-            # Distance from opponent paddle to predicted intersection
-            distance = abs(predicted_y - opponent_y)
-            
-            # Normalize distance (max meaningful distance is 0.5 in normalized coords)
-            normalized_distance = min(distance / 0.5, 1.0)
-            
-            # Reward proportional to how far the opponent is from where ball will arrive
-            reward += self.pressure_scale * normalized_distance
+        # === OFFENSIVE REWARDS ===
+        # Pressure is paid once per return, inside the hit branch below, instead
+        # of on every step the ball spends travelling toward the opponent.
         
         # === DEFENSIVE REWARDS (when ball moving toward player) ===
         
@@ -167,6 +189,25 @@ class WinFocusedRewardWrapper(gym.Wrapper):
         if self._ball_approaching and ball_vx < 0:
             reward += self.hit_reward
             self._ball_approaching = False
+            
+            # Offensive pressure, paid ONCE per return: the ball has just left
+            # the player's paddle, so ball_vx, ball_y and opponent_y are the
+            # post-hit values and this prediction is the shot actually played.
+            # Withheld on a scoring step, where the negative ball_vx belongs to
+            # a fresh serve rather than to a shot the player hit.
+            if self.pressure_scale > 0 and not scored_this_step:
+                predicted_y = self._predict_ball_y_at_opponent(
+                    ball_x, ball_y, ball_vx, ball_vy
+                )
+                
+                # Distance from opponent paddle to predicted intersection
+                distance = abs(predicted_y - opponent_y)
+                
+                # Normalize distance (max meaningful distance is 0.5 normalized)
+                normalized_distance = min(distance / 0.5, 1.0)
+                
+                # Reward proportional to how far the opponent will be from the ball
+                reward += self.pressure_scale * normalized_distance
         
         # === SPARSE REWARDS (on events) ===
         

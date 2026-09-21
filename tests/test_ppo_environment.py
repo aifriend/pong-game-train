@@ -261,19 +261,21 @@ class TestWinFocusedRewardWrapper:
             win_bonus=0.0,
         )
         
-        obs, _ = wrapped.reset()
+        # Seed the launch sequence and track the ball so the paddle actually
+        # returns it. Pressure is paid only on a return, so a policy that never
+        # reaches the ball would leave nothing to assert on.
+        obs, _ = wrapped.reset(seed=12345)
         pressure_rewards = []
-        neutral_rewards = []
         
         for _ in range(2000):
-            obs, reward, terminated, truncated, info = wrapped.step(1)
+            # 1 moves the paddle up (towards smaller y), 2 moves it down.
+            action = 1 if obs[1] < obs[4] else 2
+            obs, reward, terminated, truncated, info = wrapped.step(action)
             
             ball_vx = obs[2]  # Ball x velocity
             
             if ball_vx < 0:  # Ball moving toward opponent
                 pressure_rewards.append(reward)
-            else:
-                neutral_rewards.append(reward)
             
             if terminated:
                 obs, _ = wrapped.reset()
@@ -288,6 +290,15 @@ class TestWinFocusedRewardWrapper:
         
         # Some pressure rewards should be positive (when ball is heading away from opponent)
         assert max(pressure_rewards) > 0.0, "At least some pressure rewards should be positive"
+        
+        # Pressure is paid ONCE per return, not on every step the ball travels
+        # toward the opponent, so paid steps must be a small minority. This is
+        # the regression guard against reverting to per-step payment.
+        paid = [r for r in pressure_rewards if r > 0.0]
+        assert len(paid) * 10 < len(pressure_rewards), (
+            f"Pressure should be paid once per return, not per step: "
+            f"{len(paid)} paid steps out of {len(pressure_rewards)}"
+        )
         
         wrapped.close()
     

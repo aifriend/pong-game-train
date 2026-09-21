@@ -44,7 +44,12 @@ class GameObject:
         center_y = screen_height / 2
 
         player = Player(
-            str(PADDLE_IMAGE), screen_size, offset, screen_width - offset, center_y, ball_speed
+            str(PADDLE_IMAGE),
+            screen_size,
+            offset,
+            screen_width - offset,
+            center_y,
+            ball_speed,
         )
         opponent = Opponent(
             str(PADDLE_IMAGE),

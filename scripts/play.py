@@ -51,7 +51,10 @@ def main() -> None:
                     player.input_direction = -1
                 elif event.key == pygame.K_DOWN:
                     player.input_direction = 1
-                elif event.key == pygame.K_s and pygame.key.get_mods() & pygame.KMOD_SHIFT:
+                elif (
+                    event.key == pygame.K_s
+                    and pygame.key.get_mods() & pygame.KMOD_SHIFT
+                ):
                     # Reset game with high speed
                     game_manager, player, opponent = GameObject.get_game_object(
                         screen_size=SCREEN_SIZE,

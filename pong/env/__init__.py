@@ -6,7 +6,12 @@ Contains gymnasium-compatible Pong environments:
 - PongEnv: Pygame-based environment for visualization
 """
 
-from .pong_headless import PongHeadlessEnv, OpponentType, GameConfig, register_headless_env
+from .pong_headless import (
+    PongHeadlessEnv,
+    OpponentType,
+    GameConfig,
+    register_headless_env,
+)
 
 __all__ = [
     "PongHeadlessEnv",
@@ -14,4 +19,3 @@ __all__ = [
     "GameConfig",
     "register_headless_env",
 ]
-

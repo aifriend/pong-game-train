@@ -39,7 +39,9 @@ class GameManager:
         if headless:
             self.screen = pygame.Surface((self.screen_width, self.screen_height))
         else:
-            self.screen = pygame.display.set_mode((self.screen_width, self.screen_height))
+            self.screen = pygame.display.set_mode(
+                (self.screen_width, self.screen_height)
+            )
 
         self.player_score = 0
         self.opponent_score = 0
@@ -109,7 +111,9 @@ class GameManager:
 
     def draw_score(self) -> None:
         """Draw player and opponent scores on screen."""
-        player_score_text = self.score_font.render(str(self.player_score), True, self.accent_color)
+        player_score_text = self.score_font.render(
+            str(self.player_score), True, self.accent_color
+        )
         opponent_score_text = self.score_font.render(
             str(self.opponent_score), True, self.accent_color
         )

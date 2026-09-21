@@ -34,7 +34,7 @@ def build_mirrored_obs(env: PongHeadlessEnv) -> np.ndarray:
     c = env.config
     max_speed = c.base_ball_speed * 2
 
-    ball_x_norm = 1.0 - (env.ball_x / c.screen_width)      # flip horizontal
+    ball_x_norm = 1.0 - (env.ball_x / c.screen_width)  # flip horizontal
     ball_y_norm = env.ball_y / c.screen_height
     ball_vx_norm = np.clip(-env.ball_vx / max_speed, -1, 1)  # flip vx
     ball_vy_norm = np.clip(env.ball_vy / max_speed, -1, 1)
@@ -46,24 +46,33 @@ def build_mirrored_obs(env: PongHeadlessEnv) -> np.ndarray:
     # Distance (symmetric, same either way)
     dx = env.ball_x - env.opponent_x
     dy = env.ball_y - env.opponent_y
-    max_dist = np.sqrt(c.screen_width ** 2 + c.screen_height ** 2)
-    dist_norm = np.clip(np.sqrt(dx ** 2 + dy ** 2) / max_dist, 0, 1)
+    max_dist = np.sqrt(c.screen_width**2 + c.screen_height**2)
+    dist_norm = np.clip(np.sqrt(dx**2 + dy**2) / max_dist, 0, 1)
 
     # Swap scores: model's score = opponent_score, other = player_score
     model_score_norm = env.opponent_score / c.max_score
     other_score_norm = env.player_score / c.max_score
 
-    return np.array([
-        ball_x_norm, ball_y_norm, ball_vx_norm, ball_vy_norm,
-        model_paddle_norm, other_paddle_norm, dist_norm,
-        model_score_norm, other_score_norm,
-    ], dtype=np.float32)
+    return np.array(
+        [
+            ball_x_norm,
+            ball_y_norm,
+            ball_vx_norm,
+            ball_vy_norm,
+            model_paddle_norm,
+            other_paddle_norm,
+            dist_norm,
+            model_score_norm,
+            other_score_norm,
+        ],
+        dtype=np.float32,
+    )
 
 
 def apply_model_action(env: PongHeadlessEnv, action: int):
     """Move opponent paddle based on model's action."""
     c = env.config
-    if action == 1:    # up
+    if action == 1:  # up
         env.opponent_y -= c.base_paddle_speed
     elif action == 2:  # down
         env.opponent_y += c.base_paddle_speed
@@ -78,10 +87,15 @@ def apply_model_action(env: PongHeadlessEnv, action: int):
 
 def main():
     parser = argparse.ArgumentParser(description="Play Pong against trained PPO model")
-    parser.add_argument("--weights", type=str, default="models_v2/ppo_final.zip",
-                        help="Path to PPO model .zip file")
-    parser.add_argument("--speed", type=float, default=1.0,
-                        help="Ball speed multiplier (default: 1.0)")
+    parser.add_argument(
+        "--weights",
+        type=str,
+        default="models_v2/ppo_final.zip",
+        help="Path to PPO model .zip file",
+    )
+    parser.add_argument(
+        "--speed", type=float, default=1.0, help="Ball speed multiplier (default: 1.0)"
+    )
     args = parser.parse_args()
 
     # --- Load model ---
@@ -157,29 +171,37 @@ def main():
         obs, reward, terminated, truncated, info = env.step(human_action)
 
         # --- Render ---
-        frame = env._render_frame()                          # (H, W, 3) uint8
+        frame = env._render_frame()  # (H, W, 3) uint8
         surface = pygame.surfarray.make_surface(
-            np.transpose(frame, (1, 0, 2))                   # pygame wants (W, H, 3)
+            np.transpose(frame, (1, 0, 2))  # pygame wants (W, H, 3)
         )
         screen.blit(surface, (0, 0))
 
         # Score overlay
         score_text = font.render(
             f"{env.opponent_score}   {env.player_score}",
-            True, (255, 255, 255),
+            True,
+            (255, 255, 255),
         )
-        screen.blit(score_text, (config.screen_width // 2 - score_text.get_width() // 2, 20))
+        screen.blit(
+            score_text, (config.screen_width // 2 - score_text.get_width() // 2, 20)
+        )
 
         # Labels
         ai_label = small_font.render("AI", True, (180, 180, 180))
         you_label = small_font.render("YOU", True, (180, 180, 180))
-        screen.blit(ai_label, (config.screen_width // 4 - ai_label.get_width() // 2, 70))
-        screen.blit(you_label, (3 * config.screen_width // 4 - you_label.get_width() // 2, 70))
+        screen.blit(
+            ai_label, (config.screen_width // 4 - ai_label.get_width() // 2, 70)
+        )
+        screen.blit(
+            you_label, (3 * config.screen_width // 4 - you_label.get_width() // 2, 70)
+        )
 
         # Center dotted line
         for y in range(0, config.screen_height, 20):
-            pygame.draw.rect(screen, (80, 80, 80),
-                             (config.screen_width // 2 - 1, y, 2, 10))
+            pygame.draw.rect(
+                screen, (80, 80, 80), (config.screen_width // 2 - 1, y, 2, 10)
+            )
 
         # --- Game over detection ---
         if terminated:
@@ -190,9 +212,13 @@ def main():
                 result = "AI WINS"
                 color = (255, 80, 80)
             result_text = font.render(result, True, color)
-            screen.blit(result_text,
-                         (config.screen_width // 2 - result_text.get_width() // 2,
-                          config.screen_height // 2 - result_text.get_height() // 2))
+            screen.blit(
+                result_text,
+                (
+                    config.screen_width // 2 - result_text.get_width() // 2,
+                    config.screen_height // 2 - result_text.get_height() // 2,
+                ),
+            )
             game_over = True
             game_over_timer = 2000  # 2 seconds pause
 

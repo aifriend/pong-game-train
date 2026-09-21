@@ -81,7 +81,10 @@ class Ball(Block):
     def collisions(self) -> None:
         """Handle collisions with walls and paddles."""
         # Wall collisions (top and bottom)
-        if self.rect.top <= self.offset or self.rect.bottom >= self.screen_height - self.offset:
+        if (
+            self.rect.top <= self.offset
+            or self.rect.bottom >= self.screen_height - self.offset
+        ):
             if self.pong_sound:
                 self.pong_sound.play()
             self.speed_y *= -1

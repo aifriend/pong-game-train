@@ -40,7 +40,9 @@ class Opponent(Block):
             self.rect.y += self.movement
         else:
             # AI mode: add randomness to opponent movement for more natural behavior
-            rect_flows = self.rect.y + random.randint(-OPPONENT_RANDOM_RANGE, OPPONENT_RANDOM_RANGE)
+            rect_flows = self.rect.y + random.randint(
+                -OPPONENT_RANDOM_RANGE, OPPONENT_RANDOM_RANGE
+            )
             if rect_flows < ball_group.sprite.rect.y:
                 self.rect.y += self.speed
             if rect_flows > ball_group.sprite.rect.y:

@@ -47,7 +47,7 @@ class Player(Block):
 
     def _is_at_boundary(self) -> Tuple[bool, bool]:
         """Check if paddle is at top or bottom boundary.
-        
+
         Returns:
             Tuple of (at_top, at_bottom)
         """
@@ -58,10 +58,12 @@ class Player(Block):
     def update(self, ball_group) -> None:
         """Update player position with acceleration."""
         at_top, at_bottom = self._is_at_boundary()
-        
+
         if self.input_direction != 0:
             # Prevent acceleration if trying to move into a boundary
-            if (self.input_direction == -1 and at_top) or (self.input_direction == 1 and at_bottom):
+            if (self.input_direction == -1 and at_top) or (
+                self.input_direction == 1 and at_bottom
+            ):
                 # At boundary and trying to move into it - stop velocity
                 self.velocity = 0
             else:

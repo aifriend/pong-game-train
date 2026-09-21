@@ -130,7 +130,7 @@ The agent progresses through 5 phases with ~10% opponent speed increments, gradu
 | Pressure opponent | +0.15 → +0.08 | Offensive shot placement shaping |
 | Per step | -0.001 | Faster games |
 
-**Key**: Hit rewards fade gradually across phases. Strong pressure shaping (0.15) guides offensive play.
+**Key**: Hit rewards fade gradually across phases. Pressure shaping (0.15 decaying to 0.08) is paid once per return, not per step.
 
 ---
 

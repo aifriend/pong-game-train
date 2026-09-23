@@ -53,7 +53,7 @@ The curriculum uses **graduated difficulty** with **small increments (~10% oppon
 - **Opponent**: SLOW_AI (40% speed, 35px dead zone)
 - **Ball Speed**: 0.6x
 - **LR**: 3e-4, **Entropy**: 0.05
-- **Rewards**: hit=0.5, pressure=0.15, tracking=0.02
+- **Rewards**: hit=0.5, pressure=1.0, tracking=0.02
 - **Goal**: Bootstrap motor skills - learn to hit ball and score
 - **Target Win Rate**: 60%
 
@@ -64,7 +64,7 @@ High hit reward teaches the agent to make contact with the ball. Pressure shapin
 - **Opponent**: BEGINNER_AI (55% speed, 28px dead zone)
 - **Ball Speed**: 0.7x
 - **LR**: 2.5e-4, **Entropy**: 0.04
-- **Rewards**: hit=0.3, pressure=0.15, tracking=0.02
+- **Rewards**: hit=0.3, pressure=1.0, tracking=0.02
 - **Goal**: Transfer skills to faster opponent
 - **Target Win Rate**: 50%
 
@@ -75,7 +75,7 @@ Reduced hit reward starts transitioning the agent from contact-seeking to score-
 - **Opponent**: MEDIUM_AI (65% speed, 22px dead zone)
 - **Ball Speed**: 0.8x
 - **LR**: 1.5e-4, **Entropy**: 0.03
-- **Rewards**: hit=0.1, pressure=0.12, tracking=0.015
+- **Rewards**: hit=0.1, pressure=0.8, tracking=0.015
 - **Goal**: Learn offensive shot placement against competent opponent
 - **Target Win Rate**: 40%
 
@@ -86,7 +86,7 @@ Low hit reward. Agent must rely more on scoring and pressure shaping for positiv
 - **Opponent**: NORMAL_AI (70% speed, 20px dead zone)
 - **Ball Speed**: 0.9x
 - **LR**: 5e-5, **Entropy**: 0.015
-- **Rewards**: hit=0.05, pressure=0.10, tracking=0.01
+- **Rewards**: hit=0.05, pressure=0.65, tracking=0.01
 - **Goal**: Beat a fast opponent with near-full ball speed
 - **Target Win Rate**: 30%
 
@@ -97,7 +97,7 @@ Very low LR prevents catastrophic forgetting. Minimal hit reward keeps value fun
 - **Opponent**: REACTIVE_AI (70% speed, 18px dead zone + late ball prediction)
 - **Ball Speed**: 1.0x
 - **LR**: 3e-5, **Entropy**: 0.01
-- **Rewards**: hit=0.05, pressure=0.08, tracking=0.01
+- **Rewards**: hit=0.05, pressure=0.5, tracking=0.01
 - **Goal**: Master the predictive AI at full speed
 - **Target Win Rate**: 20%
 - **Mixed Training**: 4 REACTIVE + 2 NORMAL + 2 MEDIUM environments
@@ -125,7 +125,7 @@ The `WinFocusedRewardWrapper` provides **graduated reward shaping** that transit
 - Phase 4-5: +0.05 (prevents value function collapse)
 
 ### Offensive Reward (paid once, when the player returns the ball)
-- **Pressure shaping**: +0.15 → +0.08 (decaying) when the return heads where opponent ISN'T
+- **Pressure shaping**: +1.0 → +0.5 (decaying) when the return heads where opponent ISN'T
   - Paid ONCE per return, not on every step the ball travels toward the opponent
   - Predicts ball y-intersection at opponent's x using wall-bounce reflection
   - Rewards proportional to distance from opponent paddle
@@ -142,7 +142,7 @@ The `WinFocusedRewardWrapper` provides **graduated reward shaping** that transit
 ### Penalties
 - Per step: -0.001 (encourages faster games)
 
-**Key design**: Hit rewards fade gradually so the agent always has *some* learning signal. Pressure shaping is strong (0.15) to overcome the sparse nature of scoring rewards.
+**Key design**: Hit rewards fade gradually so the agent always has *some* learning signal. Pressure shaping is strong (a perfectly placed return pays the full scale, 20% of the 5.0 point reward at 1.0) to overcome the sparse nature of scoring rewards.
 
 ## Opponent Configuration
 
@@ -283,7 +283,7 @@ WinFocusedRewardWrapper(
     win_bonus=10.0,
     hit_reward=0.5,         # Decays: 0.5 → 0.3 → 0.1 → 0.05 → 0.05
     tracking_reward=0.02,   # Decays: 0.02 → 0.01
-    pressure_scale=0.15,    # Decays: 0.15 → 0.08
+    pressure_scale=1.0,     # Decays: 1.0 → 0.5
     step_penalty=0.001,
 )
 ```
@@ -291,8 +291,10 @@ WinFocusedRewardWrapper(
 ### Environment Configuration
 
 - **Parallel Environments**: DummyVecEnv with 8 envs (default)
-- **Max Score**: 5 (shorter games for faster training)
+- **Max Score**: 3 (first to 3; measured so games conclude in ~2,800 steps)
 - **Max Steps**: 5000 (prevents infinite episodes)
+- **Ball acceleration**: +25% horizontal speed per paddle hit, capped at 4x launch speed (classic Pong mechanic)
+- **Serve speed**: base 6.0 px/step; phase multipliers 0.6x → 1.0x scale it proportionally
 - **Phase 5**: Mixed-opponent DummyVecEnv (4 REACTIVE + 2 NORMAL + 2 MEDIUM)
 
 ### Phase Gating

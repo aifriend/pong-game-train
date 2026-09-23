@@ -32,7 +32,7 @@ def build_mirrored_obs(env: PongHeadlessEnv) -> np.ndarray:
     Flips horizontal positions/velocities and swaps player <-> opponent.
     """
     c = env.config
-    max_speed = c.base_ball_speed * 2
+    max_speed = c.base_ball_speed * c.ball_max_speed_mult
 
     ball_x_norm = 1.0 - (env.ball_x / c.screen_width)  # flip horizontal
     ball_y_norm = env.ball_y / c.screen_height

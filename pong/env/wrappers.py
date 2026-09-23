@@ -317,7 +317,7 @@ class EpisodeStatsWrapper(gym.Wrapper):
 def make_ppo_env(
     opponent_type: str = "normal_ai",
     ball_speed: float = 1.0,
-    max_score: int = 5,
+    max_score: int = 3,
     max_steps: int = 10000,
     point_reward: float = 5.0,
     win_bonus: float = 10.0,

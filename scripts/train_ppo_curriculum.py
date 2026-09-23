@@ -54,10 +54,11 @@ from pong.env.wrappers import WinFocusedRewardWrapper, EpisodeStatsWrapper
 
 # 5-Phase Curriculum Configuration
 # Small difficulty increments (~10% speed per phase) + graduated reward shaping
-# pressure_scale is the WHOLE payment for one return, not a per-step rate, so
-# at 0.15 a perfectly placed return is worth 3% of the 5.0 point reward. These
-# values are inherited from when pressure accumulated every step and have not
-# been retuned for one-shot payment.
+# pressure_scale is the WHOLE payment for one return, not a per-step rate; a
+# perfectly placed return pays the full value, so 1.0 is worth 20% of the 5.0
+# point reward. Retuned for one-shot payment: the inherited 0.15 -> 0.08 values
+# dated from per-step accumulation and left the placement signal at ~3% of a
+# point, effectively switched off.
 # hit_reward should fade gradually so the agent always has learning signal.
 CURRICULUM_PHASES = {
     1: {
@@ -70,7 +71,7 @@ CURRICULUM_PHASES = {
         # Strong hit reward to bootstrap motor skills + strong pressure for offense
         "hit_reward": 0.5,
         "tracking_reward": 0.02,
-        "pressure_scale": 0.15,
+        "pressure_scale": 1.0,
         "step_penalty": 0.001,
         # Hyperparameters - high LR for fast initial learning
         "learning_rate": 3e-4,
@@ -86,7 +87,7 @@ CURRICULUM_PHASES = {
         # Reduced hit reward, maintained pressure
         "hit_reward": 0.3,
         "tracking_reward": 0.02,
-        "pressure_scale": 0.15,
+        "pressure_scale": 1.0,
         "step_penalty": 0.001,
         # Hyperparameters
         "learning_rate": 2.5e-4,
@@ -102,7 +103,7 @@ CURRICULUM_PHASES = {
         # Low hit reward - transitioning to win-focused
         "hit_reward": 0.1,
         "tracking_reward": 0.015,
-        "pressure_scale": 0.12,
+        "pressure_scale": 0.8,
         "step_penalty": 0.001,
         # Hyperparameters
         "learning_rate": 1.5e-4,
@@ -118,7 +119,7 @@ CURRICULUM_PHASES = {
         # Keep small hit reward to prevent value function collapse
         "hit_reward": 0.05,
         "tracking_reward": 0.01,
-        "pressure_scale": 0.10,
+        "pressure_scale": 0.65,
         "step_penalty": 0.001,
         # Hyperparameters - VERY low LR to prevent catastrophic forgetting
         "learning_rate": 5e-5,
@@ -134,7 +135,7 @@ CURRICULUM_PHASES = {
         # Keep small hit reward + moderate pressure to prevent value collapse
         "hit_reward": 0.05,
         "tracking_reward": 0.01,
-        "pressure_scale": 0.08,
+        "pressure_scale": 0.5,
         "step_penalty": 0.001,
         # Hyperparameters - VERY low LR to prevent catastrophic forgetting
         "learning_rate": 3e-5,
@@ -230,8 +231,8 @@ class WinRateLoggingCallback(BaseCallback):
         if self.locals.get("infos"):
             for info in self.locals["infos"]:
                 if (
-                    info.get("player_score", 0) >= 5
-                    or info.get("opponent_score", 0) >= 5
+                    info.get("player_score", 0) >= 3
+                    or info.get("opponent_score", 0) >= 3
                 ):
                     won = info.get("player_score", 0) > info.get("opponent_score", 0)
                     self.episode_wins.append(1.0 if won else 0.0)
@@ -302,7 +303,7 @@ class RegressionDetectionCallback(BaseCallback):
 def make_ppo_env(
     opponent_type: OpponentType,
     ball_speed: float = 1.0,
-    max_score: int = 5,
+    max_score: int = 3,
     max_steps: int = 5000,
     hit_reward: float = 1.0,
     tracking_reward: float = 0.01,
@@ -384,7 +385,7 @@ def create_vec_env(
             env = make_ppo_env(
                 opponent_type=opponent_type,
                 ball_speed=ball_speed,
-                max_score=5,  # Shorter games for faster training
+                max_score=3,  # Shorter games for faster training
                 max_steps=5000,
                 hit_reward=hit_reward,
                 tracking_reward=tracking_reward,
@@ -440,7 +441,7 @@ def create_mixed_vec_env(
                     env = make_ppo_env(
                         opponent_type=ot,
                         ball_speed=bs,
-                        max_score=5,
+                        max_score=3,
                         max_steps=5000,
                         hit_reward=hit_reward,
                         tracking_reward=tracking_reward,
@@ -482,7 +483,7 @@ def create_eval_vec_env(
         env = make_ppo_env(
             opponent_type=opponent_type,
             ball_speed=ball_speed,
-            max_score=5,
+            max_score=3,
             max_steps=5000,
             hit_reward=hit_reward,
             tracking_reward=tracking_reward,
@@ -791,7 +792,7 @@ def evaluate_model(
     model: PPO,
     opponent_type: OpponentType,
     ball_speed: float = 1.0,
-    max_score: int = 5,
+    max_score: int = 3,
     max_steps: int = 5000,
     n_episodes: int = 20,
     deterministic: bool = True,

@@ -39,13 +39,17 @@ class GameConfig:
     paddle_width: int = 10
     paddle_height: int = 100
     ball_size: int = 15
-    base_ball_speed: float = 4.0
+    base_ball_speed: float = 6.0
     base_paddle_speed: float = 8.0
-    max_score: int = 5
+    max_score: int = 3
     max_steps: int = 10000
-    # Ball acceleration: speed increases by this factor per paddle hit
-    ball_accel_per_hit: float = 0.005  # 0.5% speed boost per hit
-    ball_max_speed_mult: float = 1.15  # Cap at 1.15x initial launch speed
+    # Ball acceleration: horizontal speed increases by this factor per paddle
+    # hit (classic Pong mechanic). Combined with the serve speed and
+    # max_score above, measured so games reach max_score in ~2,800 steps
+    # (well within a 5,000-step cap). The cap stays below the speed (~25
+    # px/step) where the ball would tunnel through the paddle in one step.
+    ball_accel_per_hit: float = 0.25  # 25% speed boost per hit
+    ball_max_speed_mult: float = 4.0  # Cap at 4x initial launch speed
     # Edge-hit deflection: exponent > 1 makes paddle edges deflect
     # much more sharply than center (mimics original Atari Pong segments)
     edge_hit_exponent: float = 2.0  # Quadratic: edges deflect 2x-3x steeper
@@ -217,8 +221,10 @@ class PongHeadlessEnv(gym.Env):
         player_y_norm = self.player_y / c.screen_height
         opponent_y_norm = self.opponent_y / c.screen_height
 
-        # Normalize velocities to [-1, 1]
-        max_speed = c.base_ball_speed * 2
+        # Normalize velocities to [-1, 1]. The scale must cover the fastest
+        # possible ball: launch speed at multiplier 1.0, times the
+        # acceleration cap.
+        max_speed = c.base_ball_speed * c.ball_max_speed_mult
         ball_vx_norm = np.clip(self.ball_vx / max_speed, -1.0, 1.0)
         ball_vy_norm = np.clip(self.ball_vy / max_speed, -1.0, 1.0)
 

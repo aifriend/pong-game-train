@@ -686,19 +686,22 @@ def train_phase(
                 print("  Halting phase due to regression.")
                 break
 
-            # Evaluate after chunk. The gate is a decision, so it uses
-            # deterministic (greedy) actions and enough episodes to be readable:
-            # 100 episodes give a standard error near 4.6 percentage points at a
-            # 30% win rate, against 10.2 points with 20 episodes. Episodes still
-            # differ because the environment draws a new random ball launch on
-            # every reset and is never re-seeded here.
+            # Evaluate after chunk. The gate is a decision, so it uses enough
+            # episodes to be readable: 100 episodes give a standard error near
+            # 4.6 percentage points at a 30% win rate, against 10.2 points with
+            # 20 episodes. Actions are SAMPLED, not greedy: against a
+            # deterministic scripted opponent, greedy play falls into exact
+            # rally loops that run to the step cap (measured: only 56/100 games
+            # finish greedy, at a noisy 31% win rate, versus 100/100 finishing
+            # at 68% sampled). Episodes differ because the environment draws a
+            # new random ball launch on every reset and is never re-seeded here.
             eval_results = evaluate_model(
                 model,
                 phase_config["opponent_type"],
                 ball_speed=phase_config["ball_speed"],
                 max_steps=5000,
                 n_episodes=100,
-                deterministic=True,
+                deterministic=False,
                 verbose=False,
             )
             current_win_rate = eval_results["win_rate"]
@@ -743,7 +746,7 @@ def train_phase(
 
     # Final evaluation: this sets target_achieved, which run_full_curriculum
     # uses to decide whether the next phase starts, so it is the same decision
-    # as the per-chunk gate and uses the same settings (greedy actions,
+    # as the per-chunk gate and uses the same settings (sampled actions,
     # 100 episodes).
     if not target_achieved:
         print(f"\nFinal evaluation for Phase {phase}...")
@@ -753,7 +756,7 @@ def train_phase(
             ball_speed=phase_config["ball_speed"],
             max_steps=5000,
             n_episodes=100,
-            deterministic=True,
+            deterministic=False,
             verbose=False,
         )
         final_win_rate = final_eval["win_rate"]
@@ -808,7 +811,9 @@ def evaluate_model(
         max_score: Points needed to win
         max_steps: Max steps per episode
         n_episodes: Number of evaluation episodes
-        deterministic: Use deterministic actions (recommended for evaluation)
+        deterministic: Use greedy actions. Gating uses sampled actions:
+            against a deterministic scripted opponent, greedy play loops
+            into endless rallies that truncate at the step cap.
         verbose: Print per-episode results
 
     Returns:

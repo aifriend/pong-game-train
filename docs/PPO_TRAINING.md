@@ -299,9 +299,11 @@ WinFocusedRewardWrapper(
 
 ### Phase Gating
 
-Phase advancement uses **deterministic evaluation** to ensure stable policy assessment:
-- 100 evaluation episodes per check, with greedy (deterministic) actions
-- 100 episodes for final evaluation as well, since it gates the same decision
+Phase advancement uses **sampled-action evaluation** to ensure stable policy assessment:
+- 100 evaluation episodes per check, with sampled (stochastic) actions
+- Sampled, not greedy: against a deterministic scripted opponent, greedy play
+  falls into exact rally loops that run to the step cap (measured: 56/100 games
+  finish greedy at a noisy 31% win rate, versus 100/100 finishing at 68%)
 - 100 episodes give a standard error near 4.6 percentage points at a 30% win
   rate, against 10.2 points with 20 episodes
 - Must hit target 2 consecutive times for early advancement

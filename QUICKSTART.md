@@ -87,6 +87,10 @@ Using cpu device
 ## 🎯 Quick Commands
 
 ```bash
+# === Play Game ===
+uv run pong          # Short form to play
+uv run main.py       # Or use main.py
+
 # === Training ===
 
 # Full curriculum (recommended)

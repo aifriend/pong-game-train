@@ -52,6 +52,15 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 uv sync
 ```
 
+### Run the Game
+
+```bash
+# Short form (play Pong)
+uv run pong
+
+# Or: uv run main.py  |  uv run -m pong  |  uv run pong-play
+```
+
 ### Train Agent
 
 ```bash
@@ -203,7 +212,7 @@ Pong/
 │   └── play.py                   # Manual play
 ├── tests/                        # Unit tests
 ├── docs/
-│   ├── PPO_TRAINING.md          # Detailed training guide
+│   ├── CLI.md                   # Available uv run commands
 │   └── PPO_TRAINING.md          # Detailed training guide
 ├── learn/
 │   ├── environment_guide.md
@@ -269,6 +278,7 @@ while True:
 
 ## 📚 Documentation
 
+- **[CLI Commands](docs/CLI.md)** - Available `uv run` commands
 - **[PPO Training Guide](docs/PPO_TRAINING.md)** - Detailed training methodology
 - **[Environment Guide](learn/environment_guide.md)** - Environment API reference
 - **[SB3 Tutorial](learn/stable_baselines3_tutorial.md)** - Stable-Baselines3 usage

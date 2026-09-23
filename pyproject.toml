@@ -41,6 +41,7 @@ dev = [
 ]
 
 [project.scripts]
+pong = "scripts.play:main"
 pong-train = "scripts.train_ppo_curriculum:main"
 pong-eval = "scripts.evaluate_agent:main"
 pong-play = "scripts.play:main"

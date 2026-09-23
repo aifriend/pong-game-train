@@ -126,7 +126,7 @@ game in any configuration reached a real conclusion.
 work that starts from the hyperparameter plan without addressing this will be tuning against
 a broken instrument.
 
-## 4. Decisions waiting for Jose — do not make these unilaterally
+## 4. Decisions waiting for Jose — RESOLVED 2026-09-23, see section 9
 
 **4.1 The step cap, or the points needed to win.** This is the big one. Games do not finish.
 The options are raising `max_steps` well above 20,000, lowering `max_score` below 5, or
@@ -207,3 +207,59 @@ Already modified before this work started, and untouched by it: `QUICKSTART.md`,
 Settle section 4.1. Until games can finish, the win rate the gate reads is not measuring
 the agent's ability, and neither the existing improvement plan nor any hyperparameter
 search will produce a trustworthy result.
+
+---
+
+## 9. Addendum — 2026-09-23: section 4 settled, full retrain done
+
+All three decisions were made by Jose and are implemented, measured and committed.
+The branch head is `d174daf`; models are in `models_v6/`. Commits: `df344a5` (CLI),
+`099c81e` (packaging), `a3d6ee8` (physics + pressure), `d174daf` (gate fix), plus a
+`.gitignore` commit for the iCloud venv workaround.
+
+**4.1 resolved — combined config, because acceleration alone measurably cannot work.**
+`GameConfig` now: `ball_accel_per_hit=0.25`, `ball_max_speed_mult=4.0`,
+`base_ball_speed=6.0`, `max_score=3` (`max_steps=5000` unchanged). The env already had
+per-hit acceleration, but at 0.5% capped at 1.15x it did nothing. Measured with the
+phase-1 pilot model: accel alone tops out at ~2.5 points per 5000 steps — every rally
+restarts at serve speed, and those first crossings dominate the clock — so no game
+reached 5 points even at accel 0.3/cap 6. Raising the serve speed to 6 (phase
+multipliers unchanged, difficulty order preserved) plus first-to-3 finishes 199/200
+games across all five opponents. Velocity observation normalization now covers
+`base_ball_speed x ball_max_speed_mult` (mirrored in `play_against_model.py`); every
+old checkpoint therefore misreads velocities and is not comparable to anything in
+`models_v6/`.
+
+**4.2 resolved.** `pressure_scale` retuned to 1.0, 1.0, 0.8, 0.65, 0.5 across the
+phases. A perfectly placed return is worth 20% of the 5.0 point reward again.
+
+**4.3 resolved.** Full curriculum retrained from scratch. All five gates passed on the
+first attempt, 10.5 minutes total (previously phase 3 could not pass at all).
+
+**New defect found and fixed during the retrain** (`d174daf`): the greedy gate from
+fix 2.2 loops. A deterministic policy against a deterministic scripted opponent falls
+into exact rally cycles that run to the step cap and land on a random score — measured
+56/100 games finishing at a noisy 31% greedy (chunk evals swung 0% -> 71% -> 30%)
+versus 100/100 finishing at 68% sampled. Both gates and the phase-final eval now use
+sampled actions with the same 100 episodes.
+
+**Final model, independently verified** (`models_v6/ppo_final.zip`, sampled, 40
+episodes per row, each opponent at its phase ball speed):
+
+| Opponent | Ball speed | Finished | W-L-D | Win rate | Old checkpoint (greedy) |
+|---|---|---|---|---|---|
+| slow | 0.6 | 40/40 | 40-0-0 | 100% | 92.5%, nothing finishing |
+| beginner | 0.7 | 40/40 | 38-2-0 | 95% | 50.0% |
+| medium | 0.8 | 34/40 | 31-3-6 | 77.5% | 17.5% |
+| normal | 0.9 | 34/40 | 22-12-6 | 55% | 7.5% |
+| reactive | 1.0 | 33/40 | 21-13-6 | 52.5% | not reached |
+
+**Environment note:** iCloud Drive marks `.pth` files in `.venv` with the macOS hidden
+flag, and `site.py` silently skips hidden `.pth` files — this broke the editable
+install intermittently (`No module named 'scripts'`). `.venv` is now a symlink to
+`.venv.nosync/`, which iCloud does not sync. If the venv is ever recreated, recreate
+the symlink the same way rather than letting uv build it inside iCloud.
+
+Still open from section 5, unchanged: the phantom hit reward, the remaining copied win
+rules, the trajectory prediction aiming at the court edge, and the closing summary
+evaluating every opponent at ball speed 1.0.

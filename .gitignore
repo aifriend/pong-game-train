@@ -25,7 +25,7 @@ MANIFEST
 # .venv is a symlink to .venv.nosync so iCloud Drive does not sync (and does
 # not UF_HIDDEN-flag) the environment - hidden .pth files are skipped by
 # site.py, which silently breaks the editable install.
-.venv/
+.venv
 .venv.nosync/
 venv/
 /ENV/

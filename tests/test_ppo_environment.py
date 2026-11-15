@@ -72,29 +72,42 @@ class TestPongHeadlessEnv:
 
         env.close()
 
-    def test_ball_acceleration(self):
-        """Test that ball speed increases after paddle hits."""
-        env = PongHeadlessEnv(opponent_type=OpponentType.SLOW_AI)
-        obs, _ = env.reset()
+    @pytest.mark.parametrize("seed", range(10))
+    def test_ball_acceleration(self, seed):
+        """Test that horizontal ball speed increases after a player paddle hit.
 
-        initial_speed = np.sqrt(env.ball_vx**2 + env.ball_vy**2)
-        max_speed_seen = initial_speed
-        hits_detected = 0
+        The player paddle tracks the ball so a hit is guaranteed within the
+        episode; a fixed action with a random serve can finish a game without
+        any paddle contact, which made this test flaky.
+        """
+        env = PongHeadlessEnv(opponent_type=OpponentType.SLOW_AI)
+        env.reset(seed=seed)
+
+        initial_hspeed = abs(env.ball_vx)
+        max_hspeed_seen = initial_hspeed
+        player_hits = 0
+        prev_vx = env.ball_vx
 
         for _ in range(5000):
-            obs, reward, terminated, truncated, info = env.step(1)
-            current_speed = np.sqrt(env.ball_vx**2 + env.ball_vy**2)
-            if current_speed > max_speed_seen + 0.01:
-                max_speed_seen = current_speed
-                hits_detected += 1
-            if terminated:
-                obs, _ = env.reset()
+            # 0 = stay, 1 = up, 2 = down; follow the ball vertically.
+            if env.ball_y < env.player_y - 10:
+                action = 1
+            elif env.ball_y > env.player_y + 10:
+                action = 2
+            else:
+                action = 0
+            _, _, terminated, truncated, _ = env.step(action)
+            if prev_vx > 0 and env.ball_vx < 0:
+                player_hits += 1
+            prev_vx = env.ball_vx
+            max_hspeed_seen = max(max_hspeed_seen, abs(env.ball_vx))
+            if terminated or truncated or player_hits >= 3:
                 break
 
-        # Ball should have accelerated during the episode
+        assert player_hits > 0, "Test setup failed: player never hit the ball"
         assert (
-            max_speed_seen > initial_speed
-        ), f"Ball should accelerate: initial={initial_speed:.2f}, max={max_speed_seen:.2f}"
+            max_hspeed_seen > initial_hspeed
+        ), f"Ball should accelerate: initial={initial_hspeed:.2f}, max={max_hspeed_seen:.2f}"
         env.close()
 
     def test_ball_speed_capped(self):

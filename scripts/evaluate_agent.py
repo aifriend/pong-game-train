@@ -7,6 +7,7 @@ performance metrics to validate master-level achievement.
 Master-Level Benchmarks:
 - slow_ai: >= 90% win rate
 - beginner_ai: >= 75% win rate
+- medium_ai: >= 65% win rate
 - normal_ai: >= 55% win rate
 - reactive_ai: >= 50% win rate
 
@@ -32,6 +33,7 @@ from stable_baselines3 import PPO
 BENCHMARKS = {
     OpponentType.SLOW_AI: 0.90,  # Should easily beat
     OpponentType.BEGINNER_AI: 0.75,  # Phase 1 validation
+    OpponentType.MEDIUM_AI: 0.65,  # Between beginner and normal
     OpponentType.NORMAL_AI: 0.55,  # Phase 2 validation
     OpponentType.REACTIVE_AI: 0.50,  # Phase 3 validation
 }
@@ -191,6 +193,7 @@ def run_full_evaluation(
     opponents = [
         (OpponentType.SLOW_AI, "Slow AI"),
         (OpponentType.BEGINNER_AI, "Beginner AI"),
+        (OpponentType.MEDIUM_AI, "Medium AI"),
         (OpponentType.NORMAL_AI, "Normal AI"),
         (OpponentType.REACTIVE_AI, "Reactive AI"),
     ]
@@ -277,7 +280,7 @@ def main():
         "--opponent",
         type=str,
         default=None,
-        choices=["slow_ai", "beginner_ai", "normal_ai", "reactive_ai"],
+        choices=["slow_ai", "beginner_ai", "medium_ai", "normal_ai", "reactive_ai"],
         help="Evaluate against specific opponent only",
     )
     args = parser.parse_args()
@@ -302,6 +305,7 @@ def main():
         opponent_mapping = {
             "slow_ai": OpponentType.SLOW_AI,
             "beginner_ai": OpponentType.BEGINNER_AI,
+            "medium_ai": OpponentType.MEDIUM_AI,
             "normal_ai": OpponentType.NORMAL_AI,
             "reactive_ai": OpponentType.REACTIVE_AI,
         }

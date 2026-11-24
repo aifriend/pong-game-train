@@ -39,7 +39,7 @@ The original DQN agent plateaued after 300+ hours of training with 0% win rate b
 │        ↓                                                  │
 │  DummyVecEnv (8 parallel environments)                   │
 │        ↓                                                  │
-│  PPO Agent (MlpPolicy, 136K params)                      │
+│  PPO Agent (MlpPolicy, 256×256 network for new models)   │
 │                                                           │
 └─────────────────────────────────────────────────────────┘
 ```
@@ -92,17 +92,17 @@ Low hit reward. Agent must rely more on scoring and pressure shaping for positiv
 
 Very low LR prevents catastrophic forgetting. Minimal hit reward keeps value function stable during the transition.
 
-### Phase 5: Master (200K steps)
+### Phase 5: Master (300K steps)
 
-- **Opponent**: REACTIVE_AI (70% speed, 18px dead zone + late ball prediction)
+- **Opponent**: EXPERT_AI (100% speed, full wall prediction + attacking placement)
 - **Ball Speed**: 1.0x
 - **LR**: 3e-5, **Entropy**: 0.01
 - **Rewards**: hit=0.05, pressure=0.5, tracking=0.01
-- **Goal**: Master the predictive AI at full speed
+- **Goal**: Challenge the strongest predictive opponent at full speed
 - **Target Win Rate**: 20%
-- **Mixed Training**: 4 REACTIVE + 2 NORMAL + 2 MEDIUM environments
+- **Mixed Training**: 4 EXPERT + 2 REACTIVE + 2 NORMAL environments
 
-The REACTIVE_AI uses **late prediction** - it only starts predicting ball trajectory in the last 30% of the court. This gives the agent's angled shots time to create scoring opportunities before the opponent reacts.
+The EXPERT_AI predicts wall-reflected intercepts throughout the ball's approach and chooses contact offsets that send returns away from the agent. REACTIVE_AI remains in the mix as a less forgiving tracking opponent with late prediction.
 
 **Mixed-opponent training** prevents catastrophic forgetting by maintaining skill against easier opponents while learning to beat the hardest one.
 
@@ -153,6 +153,7 @@ The `WinFocusedRewardWrapper` provides **graduated reward shaping** that transit
 | MEDIUM_AI | 65% | 22px | Competent opponent |
 | NORMAL_AI | 70% | 20px | Fast and competitive |
 | REACTIVE_AI | 70% | 18px | Late ball trajectory prediction (last 30% of court) |
+| EXPERT_AI | 100% | 1px | Full wall prediction and attacking contact offsets |
 
 ### REACTIVE_AI Late Prediction
 
@@ -216,10 +217,10 @@ tensorboard --logdir ./tensorboard/
 | 2: Beginner | 100K | 2.5e-4 | ~1 min |
 | 3: Medium | 150K | 1.5e-4 | ~2 min |
 | 4: Competitive | 200K | 5e-5 | ~3 min |
-| 5: Master | 200K | 3e-5 | ~8 min |
-| **Total** | **750K** | - | **~15 min** |
+| 5: Master | 300K | 3e-5 | ~8 min |
+| **Total** | **850K** | - | **~15 min** |
 
-*Base step budgets. Each phase has a 5x multiplier for max attempts. Times based on 8 parallel environments on M1 Mac.*
+*Base step budgets. Each phase has a 5x multiplier for max attempts. Times based on 8 parallel environments on M1 Mac and will vary with the larger network and collision checks.*
 
 ### Win Rate Targets
 
@@ -229,9 +230,9 @@ tensorboard --logdir ./tensorboard/
 | BEGINNER_AI | 50%+ | After Phase 2 |
 | MEDIUM_AI | 40%+ | After Phase 3 |
 | NORMAL_AI | 30%+ | After Phase 4 |
-| REACTIVE_AI | 20%+ | After Phase 5 |
+| EXPERT_AI | 20%+ | After Phase 5 |
 
-### Best Achieved Results
+### Historical PPO Results (Previous Physics)
 
 | Opponent | Win Rate | Notes |
 |----------|----------|-------|
@@ -337,12 +338,27 @@ This means the agent is forgetting basic skills while learning harder ones:
 2. Try reducing the learning rate for the failing phase
 3. Consider adding a mixed-opponent approach (like Phase 5 uses)
 
-### 0% Win Rate Against REACTIVE_AI
+### 0% Win Rate Against EXPERT_AI
 
-REACTIVE_AI is the hardest opponent due to ball prediction:
-- The late-prediction design (last 30% of court) makes it beatable but challenging
-- Mixed-opponent training in Phase 5 prevents catastrophic forgetting
-- Even partial win rates (3-10%) indicate the agent is learning offensive play
+EXPERT_AI is the hardest opponent because it combines full wall prediction with attacking shot placement:
+- Train against the mixed opponents in Phase 5 rather than Expert alone
+- Evaluate sampled and deterministic actions; deterministic policies can fall into rally loops
+- Treat the 20% target as a stretch goal, not a guarantee that PPO will match the scripted controller
+
+## RL Coach (NeoHorse-Jev-4B)
+
+An optional offline advisor reads training metrics (tensorboard logs + fresh
+evaluation) and proposes bounded changes to reward shaping, observation design,
+and hyperparameters via structured decisions from a 4B decision model.
+Proposals are JSON files you review before applying them as config overrides:
+
+```
+python scripts/coach.py propose --backend neohorse --phase 4
+python scripts/coach.py apply coach/proposals/proposal_*.json
+python scripts/train_ppo_curriculum.py --phase 4 --overrides coach/overrides.json
+```
+
+See [COACH.md](COACH.md) for setup, the full command list, and caveats.
 
 ## Comparison with Previous Approach
 

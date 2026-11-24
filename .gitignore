@@ -107,6 +107,11 @@ screenshots/
 weights/
 models/
 models_v*/
+models_neohorse/
+.venv-neohorse/
+
+# Coach state (proposals are kept for review; overrides are local)
+coach/overrides.json
 *.pt
 *.pkl
 *.h5

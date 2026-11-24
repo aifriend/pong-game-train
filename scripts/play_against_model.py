@@ -72,6 +72,7 @@ def build_mirrored_obs(env: PongHeadlessEnv) -> np.ndarray:
 def apply_model_action(env: PongHeadlessEnv, action: int):
     """Move opponent paddle based on model's action."""
     c = env.config
+    previous_y = env.opponent_y
     if action == 1:  # up
         env.opponent_y -= c.base_paddle_speed
     elif action == 2:  # down
@@ -83,10 +84,11 @@ def apply_model_action(env: PongHeadlessEnv, action: int):
         c.offset + half,
         c.screen_height - c.offset - half,
     )
+    env._opponent_vy = env.opponent_y - previous_y
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Play Pong against trained PPO model")
+    parser = argparse.ArgumentParser(description="Play Pong against PPO or expert AI")
     parser.add_argument(
         "--weights",
         type=str,
@@ -96,32 +98,40 @@ def main():
     parser.add_argument(
         "--speed", type=float, default=1.0, help="Ball speed multiplier (default: 1.0)"
     )
+    parser.add_argument(
+        "--opponent",
+        choices=["model", "expert"],
+        default="model",
+        help="Use the trained model or the wall-predictive expert",
+    )
     args = parser.parse_args()
 
-    # --- Load model ---
-    weights = Path(args.weights)
-    if not weights.exists() and not weights.with_suffix(".zip").exists():
-        print(f"Model not found: {weights}")
-        sys.exit(1)
-    model = PPO.load(str(weights))
-    print(f"Loaded model: {weights}")
+    model = None
+    if args.opponent == "model":
+        weights = Path(args.weights)
+        if not weights.exists() and not weights.with_suffix(".zip").exists():
+            print(f"Model not found: {weights}")
+            sys.exit(1)
+        model = PPO.load(str(weights))
+        print(f"Loaded model: {weights}")
 
-    # --- Create environment ---
-    # Use SLOW_AI as dummy opponent (we'll override its movement)
     config = GameConfig()
     env = PongHeadlessEnv(
         render_mode="rgb_array",
         ball_speed_multiplier=args.speed,
-        opponent_type=OpponentType.SLOW_AI,
+        opponent_type=(
+            OpponentType.EXPERT_AI
+            if args.opponent == "expert"
+            else OpponentType.SLOW_AI
+        ),
         config=config,
     )
-    # Override AI movement so it does nothing (model controls opponent)
-    env._move_opponent = lambda: None
+    if model is not None:
+        env._move_opponent = lambda: None
 
-    # --- Pygame setup ---
     pygame.init()
     screen = pygame.display.set_mode((config.screen_width, config.screen_height))
-    pygame.display.set_caption("Pong — YOU (right) vs PPO AI (left)")
+    pygame.display.set_caption(f"Pong — YOU (right) vs {args.opponent.upper()} AI (left)")
     clock = pygame.time.Clock()
     font = pygame.font.SysFont("monospace", 48, bold=True)
     small_font = pygame.font.SysFont("monospace", 24)
@@ -162,10 +172,10 @@ def main():
         else:
             human_action = 0
 
-        # --- PPO model action (left paddle) ---
-        mirrored_obs = build_mirrored_obs(env)
-        model_action, _ = model.predict(mirrored_obs, deterministic=True)
-        apply_model_action(env, int(model_action))
+        if model is not None:
+            mirrored_obs = build_mirrored_obs(env)
+            model_action, _ = model.predict(mirrored_obs, deterministic=True)
+            apply_model_action(env, int(model_action))
 
         # --- Step environment ---
         obs, reward, terminated, truncated, info = env.step(human_action)

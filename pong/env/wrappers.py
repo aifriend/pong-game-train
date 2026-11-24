@@ -354,6 +354,7 @@ def make_ppo_env(
         "medium_ai": OpponentType.MEDIUM_AI,
         "normal_ai": OpponentType.NORMAL_AI,
         "reactive_ai": OpponentType.REACTIVE_AI,
+        "expert_ai": OpponentType.EXPERT_AI,
         "agent": OpponentType.AGENT,
     }
 

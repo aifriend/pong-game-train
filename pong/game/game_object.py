@@ -23,6 +23,7 @@ class GameObject:
         pad_size: int = Ball.SMALL_PAD,
         opponent_manual_control: bool = False,
         headless: bool = False,
+        opponent_difficulty: str = "expert",
     ) -> Tuple[GameManager, Player, Opponent]:
         """
         Create and return all game objects.
@@ -36,6 +37,7 @@ class GameObject:
             pad_size: Ball size modifier (currently unused, reserved for future use)
             opponent_manual_control: If True, opponent uses movement attribute instead of AI
             headless: If True, use Surface instead of display (for training without GUI)
+            opponent_difficulty: Tracking or prediction difficulty for the opponent
 
         Returns:
             Tuple of (GameManager, Player, Opponent)
@@ -59,6 +61,7 @@ class GameObject:
             center_y,
             ball_speed,
             manual_control=opponent_manual_control,
+            difficulty=opponent_difficulty,
         )
         paddle_group = pygame.sprite.Group()
         paddle_group.add(player)

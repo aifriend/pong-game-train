@@ -263,3 +263,32 @@ the symlink the same way rather than letting uv build it inside iCloud.
 Still open from section 5, unchanged: the phantom hit reward, the remaining copied win
 rules, the trajectory prediction aiming at the court edge, and the closing summary
 evaluating every opponent at ball speed 1.0.
+
+---
+
+## 10. Addendum — 2026-10-06: RL coach (NeoHorse-Jev-4B) for reward/observation/hyperparameter decisions
+
+An offline advisor (`pong/coach/`, `scripts/coach.py`) runs the 4B structured
+decision model NeoHorse-Jev-4B against training metrics (tensorboard logs + fresh
+evaluation) and turns its Choice/Noul/Score decisions into bounded proposals
+(±10/25% moves) for reward shaping, observation design, and PPO hyperparameters.
+Nothing reaches training automatically: a proposal is a JSON file a human reviews
+and applies as `coach/overrides.json`, consumed by
+`train_ppo_curriculum.py --overrides`. Setup and caveats in `docs/COACH.md`.
+
+Key facts for future work:
+
+- The model bundle (~9 GB) lives in `models_neohorse/` and the native runtime in a
+  dedicated venv `.venv-neohorse/` (torch/transformers kept out of the project
+  venv); both are gitignored. Inference runs on Apple Silicon via `device='mps'`
+  with transformers' reference kernels (no `flash-linear-attention` build exists
+  for macOS) — ~0.4 s per decision once loaded.
+- Decisions run in two stages per session (knob selection, then magnitude
+  conditioned on the chosen knob) over a persistent worker subprocess, one model
+  load per session.
+- `PongHeadlessEnv` gained optional `obs_features` (`paddle_velocity`,
+  `intercept_y`, `relative_offset`). Enabling them changes the observation shape,
+  so models trained with features are incompatible with 9-dim checkpoints and
+  with `scripts/evaluate_agent.py` (which now fails loudly on the mismatch).
+- `scripts/evaluate_agent.py` cannot evaluate feature-trained models; use
+  `scripts/coach.py --obs-features ... collect` instead.

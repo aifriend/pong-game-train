@@ -75,7 +75,9 @@ class TestPongHeadlessEnv:
     def test_ball_acceleration(self):
         """Test that ball speed increases after paddle hits."""
         env = PongHeadlessEnv(opponent_type=OpponentType.SLOW_AI)
-        obs, _ = env.reset()
+        # Seeded: unseeded launches sometimes send the ball away from the
+        # always-up paddle for thousands of steps, making this test flaky.
+        obs, _ = env.reset(seed=0)
 
         initial_speed = np.sqrt(env.ball_vx**2 + env.ball_vy**2)
         max_speed_seen = initial_speed
@@ -499,6 +501,78 @@ def test_evaluate_model_accepts_phase_params():
     assert results["max_steps"] == 5000
     assert results["n_episodes"] == 1
     assert 0.0 <= results["win_rate"] <= 1.0
+
+
+def test_fast_ball_cannot_tunnel_through_paddle():
+    env = PongHeadlessEnv(opponent_type=OpponentType.SLOW_AI)
+    env.reset(seed=0)
+    c = env.config
+    env.ball_x = env.player_x - c.paddle_width / 2 - c.ball_size / 2 - 1
+    env.ball_y = env.player_y
+    env.ball_vx = 120.0
+    env.ball_vy = 0.0
+
+    env.step(0)
+
+    assert env._hits == 1
+    assert env.ball_vx < 0
+    assert env.opponent_score == 0
+    env.close()
+
+
+def test_rebound_preserves_speed_limit_and_playable_angle():
+    env = PongHeadlessEnv(opponent_type=OpponentType.SLOW_AI)
+    env.reset(seed=0)
+    c = env.config
+    env.ball_x = env.player_x - c.paddle_width - 1
+    env.ball_y = env.player_y + c.paddle_height / 2
+    env.ball_vx = c.base_ball_speed * c.ball_max_speed_mult
+    env.ball_vy = 0.0
+
+    env.step(2)
+
+    speed = np.hypot(env.ball_vx, env.ball_vy)
+    angle = abs(np.degrees(np.arctan2(env.ball_vy, abs(env.ball_vx))))
+    max_speed = c.base_ball_speed * c.ball_max_speed_mult
+    assert speed <= max_speed + 1e-6
+    assert angle <= 75.0 + 1e-6
+    env.close()
+
+
+def test_wall_prediction_reflects_multiple_times():
+    from pong.game.physics import predict_intercept
+
+    predicted_y, arrival = predict_intercept(
+        ball_x=800,
+        ball_y=100,
+        ball_vx=-10,
+        ball_vy=80,
+        target_x=30,
+        min_y=27.5,
+        max_y=692.5,
+    )
+
+    assert arrival == pytest.approx(77.0)
+    assert 27.5 <= predicted_y <= 692.5
+
+
+def test_expert_predicts_and_returns_reachable_shot():
+    env = PongHeadlessEnv(opponent_type=OpponentType.EXPERT_AI)
+    env.reset(seed=0)
+    env.ball_x = 200.0
+    env.ball_y = env.opponent_y
+    env.ball_vx = -12.0
+    env.ball_vy = 0.0
+
+    for _ in range(30):
+        env.step(0)
+        if env.ball_vx > 0:
+            break
+
+    assert env._rally_count == 1
+    assert env.ball_vx > 0
+    assert env.player_score == 0
+    env.close()
 
 
 if __name__ == "__main__":

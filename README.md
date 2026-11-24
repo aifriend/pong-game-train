@@ -113,7 +113,7 @@ tensorboard --logdir ./tensorboard/
 
 ### 5-Phase Curriculum
 
-The agent progresses through 5 phases with ~10% opponent speed increments, graduated hit rewards, and decaying hyperparameters:
+The agent progresses through 5 phases with graduated hit rewards and decaying hyperparameters. New models use a 256×256 policy network, longer rollouts, and a 0.995 discount factor.
 
 | Phase | Opponent | Ball Speed | Steps | Target WR | LR | Hit Reward |
 |-------|----------|------------|-------|-----------|----|------------|
@@ -121,9 +121,9 @@ The agent progresses through 5 phases with ~10% opponent speed increments, gradu
 | **2: Beginner** | BEGINNER_AI (55%) | 0.7x | 100K | 50% | 2.5e-4 | 0.3 |
 | **3: Medium** | MEDIUM_AI (65%) | 0.8x | 150K | 40% | 1.5e-4 | 0.1 |
 | **4: Competitive** | NORMAL_AI (70%) | 0.9x | 200K | 30% | 5e-5 | 0.05 |
-| **5: Master** | REACTIVE_AI (70%+pred) | 1.0x | 200K | 20% | 3e-5 | 0.05 |
+| **5: Master** | EXPERT_AI (full prediction) | 1.0x | 300K | 20% | 3e-5 | 0.05 |
 
-**Total: 750,000 base steps** (~15 min on M1 Mac). Phase 5 uses mixed-opponent training (4 REACTIVE + 2 NORMAL + 2 MEDIUM environments).
+**Total: 850,000 base steps**. Phase 5 mixes 4 EXPERT, 2 REACTIVE, and 2 NORMAL environments to combine challenge with skill retention. Existing checkpoints remain loadable; new physics mean they should be re-evaluated before further training.
 
 **Anti-regression**: Training automatically stops if the agent regresses on easy opponents (catastrophic forgetting detection).
 
@@ -136,16 +136,18 @@ The agent progresses through 5 phases with ~10% opponent speed increments, gradu
 | Win game | +10 | Ultimate goal |
 | Lose game | -10 | Strong negative signal |
 | Hit ball | +0.5 → +0.05 | Graduated: bootstraps motor skills, then fades |
-| Pressure opponent | +0.15 → +0.08 | Offensive shot placement shaping |
+| Pressure opponent | +1.0 → +0.5 | Offensive shot placement shaping |
 | Per step | -0.001 | Faster games |
 
-**Key**: Hit rewards fade gradually across phases. Pressure shaping (0.15 decaying to 0.08) is paid once per return, not per step.
+**Key**: Hit rewards fade gradually across phases. Pressure shaping is paid once per return, not per step.
 
 ---
 
 ## 📊 Evaluation
 
-### Best Achieved Results
+### Historical PPO Results
+
+These results came from the previous physics and are not benchmarks for the upgraded engine:
 
 | Opponent | Win Rate | Description |
 |----------|----------|-------------|
@@ -165,13 +167,21 @@ $ uv run python scripts/evaluate_agent.py --weights models/ppo_final.zip --episo
 
 ## 🎮 Environment Details
 
+### Physics and Controls
+
+- Swept collisions prevent fast balls from tunneling through paddles.
+- Contact position sets the rebound angle; paddle motion adds bounded spin.
+- Ball speed increases per return but remains capped, including its vertical component.
+- Serves use playable random angles and a short pause in the graphical game.
+- Use **UP/DOWN** or **W/S** to move. Run `uv run pong --difficulty normal` for an easier opponent.
+
 ### Observation Space (9 dimensions, normalized)
 
 ```
 [ball_x, ball_y, ball_vx, ball_vy, player_y, opponent_y, ball_dist, player_score, opp_score]
 ```
 
-All values normalized to [-1, 1] or [0, 1] for stable neural network training.
+All values normalized to [-1, 1] or [0, 1] for stable neural network training. Optional paddle-velocity, intercept, and relative-offset features can extend this vector for newly trained models.
 
 ### Action Space
 
@@ -188,6 +198,7 @@ All values normalized to [-1, 1] or [0, 1] for stable neural network training.
 | MEDIUM_AI | 65% | 22px | Competent opponent |
 | NORMAL_AI | 70% | 20px | Fast and competitive |
 | REACTIVE_AI | 70% | 18px | Late ball trajectory prediction (last 30% of court) |
+| EXPERT_AI | 100% | 1px | Full wall prediction and attacking shot placement |
 
 ---
 

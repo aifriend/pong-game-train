@@ -9,13 +9,13 @@ Curriculum Phases:
 1. Easy Wins (100K)   - SLOW_AI (40% speed), 0.6x ball, high hit reward
 2. Beginner (100K)    - BEGINNER_AI (55% speed), 0.7x ball, moderate hit reward
 3. Medium (150K)      - MEDIUM_AI (65% speed), 0.8x ball, low hit reward
-4. Competitive (200K) - NORMAL_AI (70% speed), 0.9x ball, no hit reward
-5. Master (300K)      - REACTIVE_AI (90% speed + prediction), 1.0x ball
+4. Competitive (200K) - NORMAL_AI (70% speed), 0.9x ball, low hit reward
+5. Master (300K)      - EXPERT_AI (full prediction + shot placement), 1.0x ball
 
 Key features:
 - Gradual opponent speed ramp with small increments (~10% each)
 - Graduated reward shaping: high hit+pressure → pure win-focus
-- Pressure shaping paid once per return (0.15 decaying to 0.08), not per step
+- Pressure shaping paid once per return (1.0 decaying to 0.5), not per step
 - Learning rate & entropy decay across phases
 - Regression detection (stops if agent forgets basics)
 - Parallel environments for faster training
@@ -27,6 +27,7 @@ Usage:
 import os
 import sys
 import argparse
+import json
 import time
 from pathlib import Path
 from typing import Callable, Optional, Tuple
@@ -127,29 +128,84 @@ CURRICULUM_PHASES = {
     },
     5: {
         "name": "Master",
-        "opponent_type": OpponentType.REACTIVE_AI,
+        "opponent_type": OpponentType.EXPERT_AI,
         "ball_speed": 1.0,
-        "timesteps": 200_000,
+        "timesteps": 300_000,
         "target_win_rate": 0.20,
-        "description": "Master the predictive AI at full speed",
-        # Keep small hit reward + moderate pressure to prevent value collapse
+        "description": "Challenge wall-predictive, shot-placement AI at full speed",
         "hit_reward": 0.05,
         "tracking_reward": 0.01,
         "pressure_scale": 0.5,
         "step_penalty": 0.001,
-        # Hyperparameters - VERY low LR to prevent catastrophic forgetting
         "learning_rate": 3e-5,
         "ent_coef": 0.01,
-        # Mixed opponents: 4 REACTIVE + 2 NORMAL + 2 MEDIUM to prevent forgetting
+        "n_steps": 2048,
+        "batch_size": 256,
+        "gamma": 0.995,
         "mixed_opponents": [
-            (OpponentType.REACTIVE_AI, 1.0, 4),
+            (OpponentType.EXPERT_AI, 1.0, 4),
+            (OpponentType.REACTIVE_AI, 1.0, 2),
             (OpponentType.NORMAL_AI, 0.9, 2),
-            (OpponentType.MEDIUM_AI, 0.8, 2),
         ],
     },
 }
 
 NUM_PHASES = len(CURRICULUM_PHASES)
+
+# Keys a coach overrides file may set per phase. Anything else is rejected so a
+# malformed proposal fails loudly instead of silently doing nothing.
+OVERRIDABLE_KEYS = {
+    "hit_reward",
+    "tracking_reward",
+    "pressure_scale",
+    "step_penalty",
+    "learning_rate",
+    "ent_coef",
+    "timesteps",
+    "ball_speed",
+    "obs_features",
+    # PPO constructor knobs. These only take effect when a phase creates a new
+    # model; a model loaded from a previous phase keeps its original values.
+    "n_steps",
+    "batch_size",
+    "clip_range",
+}
+
+
+def apply_overrides(overrides: dict) -> list:
+    """
+    Merge a coach overrides file into CURRICULUM_PHASES.
+
+    Expected shape: {"phases": {"1": {"hit_reward": 0.4, ...}, ...}}.
+    Returns a list of human-readable change lines. Raises ValueError on
+    unknown phases or keys.
+    """
+    changes = []
+    phases = overrides.get("phases", {})
+    for phase_str, values in phases.items():
+        try:
+            phase = int(phase_str)
+        except (TypeError, ValueError):
+            raise ValueError(f"Invalid phase key in overrides: {phase_str!r}")
+        if phase not in CURRICULUM_PHASES:
+            raise ValueError(f"Overrides target unknown phase {phase}")
+
+        unknown = set(values) - OVERRIDABLE_KEYS
+        if unknown:
+            raise ValueError(
+                f"Unknown override keys for phase {phase}: {sorted(unknown)}; "
+                f"allowed: {sorted(OVERRIDABLE_KEYS)}"
+            )
+
+        config = CURRICULUM_PHASES[phase]
+        for key, value in values.items():
+            old = config.get(key)
+            if old == value:
+                continue
+            config[key] = value
+            changes.append(f"phase {phase}: {key} {old!r} -> {value!r}")
+
+    return changes
 
 
 class CurriculumCallback(BaseCallback):
@@ -309,6 +365,7 @@ def make_ppo_env(
     tracking_reward: float = 0.01,
     pressure_scale: float = 0.0,
     step_penalty: float = 0.0,
+    obs_features: Optional[list] = None,
 ) -> gym.Env:
     """
     Create a single Pong environment for PPO training.
@@ -334,6 +391,7 @@ def make_ppo_env(
         opponent_type=opponent_type,
         max_score=max_score,
         max_steps=max_steps,
+        obs_features=obs_features,
     )
 
     # Apply reward wrapper
@@ -362,6 +420,7 @@ def create_vec_env(
     tracking_reward: float = 0.01,
     pressure_scale: float = 0.0,
     step_penalty: float = 0.0,
+    obs_features: Optional[list] = None,
 ) -> SubprocVecEnv:
     """
     Create vectorized environments for parallel training.
@@ -391,6 +450,7 @@ def create_vec_env(
                 tracking_reward=tracking_reward,
                 pressure_scale=pressure_scale,
                 step_penalty=step_penalty,
+                obs_features=obs_features,
             )
             env = Monitor(env)
             return env
@@ -412,6 +472,7 @@ def create_mixed_vec_env(
     tracking_reward: float = 0.01,
     pressure_scale: float = 0.08,
     step_penalty: float = 0.001,
+    obs_features: Optional[list] = None,
 ) -> DummyVecEnv:
     """
     Create vectorized environments with mixed opponents.
@@ -447,6 +508,7 @@ def create_mixed_vec_env(
                         tracking_reward=tracking_reward,
                         pressure_scale=pressure_scale,
                         step_penalty=step_penalty,
+                        obs_features=obs_features,
                     )
                     return Monitor(env)
 
@@ -476,6 +538,7 @@ def create_eval_vec_env(
     tracking_reward: float = 0.01,
     pressure_scale: float = 0.0,
     step_penalty: float = 0.0,
+    obs_features: Optional[list] = None,
 ) -> "SubprocVecEnv | DummyVecEnv":
     """Create evaluation VecEnv matching the training VecEnv type."""
 
@@ -489,6 +552,7 @@ def create_eval_vec_env(
             tracking_reward=tracking_reward,
             pressure_scale=pressure_scale,
             step_penalty=step_penalty,
+            obs_features=obs_features,
         )
         return Monitor(env)
 
@@ -540,6 +604,7 @@ def train_phase(
         "tracking_reward": phase_config.get("tracking_reward", 0.01),
         "pressure_scale": phase_config.get("pressure_scale", 0.02),
         "step_penalty": phase_config.get("step_penalty", 0.001),
+        "obs_features": phase_config.get("obs_features"),
     }
 
     # Create environments (DummyVecEnv is more stable than SubprocVecEnv)
@@ -575,15 +640,16 @@ def train_phase(
             policy="MlpPolicy",
             env=train_env,
             learning_rate=phase_config["learning_rate"],
-            n_steps=1024,
-            batch_size=128,
-            n_epochs=10,
-            gamma=0.99,
-            gae_lambda=0.95,
-            clip_range=0.2,
+            n_steps=phase_config.get("n_steps", 2048),
+            batch_size=phase_config.get("batch_size", 256),
+            n_epochs=phase_config.get("n_epochs", 10),
+            gamma=phase_config.get("gamma", 0.995),
+            gae_lambda=phase_config.get("gae_lambda", 0.95),
+            clip_range=phase_config.get("clip_range", 0.2),
             ent_coef=phase_config["ent_coef"],
             vf_coef=0.5,
             max_grad_norm=0.5,
+            policy_kwargs={"net_arch": [256, 256]},
             verbose=0,  # Disable table output
             tensorboard_log=tensorboard_log,
             device="auto",
@@ -703,6 +769,7 @@ def train_phase(
                 n_episodes=100,
                 deterministic=False,
                 verbose=False,
+                obs_features=phase_config.get("obs_features"),
             )
             current_win_rate = eval_results["win_rate"]
             target_rate = phase_config["target_win_rate"]
@@ -758,6 +825,7 @@ def train_phase(
             n_episodes=100,
             deterministic=False,
             verbose=False,
+            obs_features=phase_config.get("obs_features"),
         )
         final_win_rate = final_eval["win_rate"]
         target_rate = phase_config["target_win_rate"]
@@ -800,6 +868,7 @@ def evaluate_model(
     n_episodes: int = 20,
     deterministic: bool = True,
     verbose: bool = True,
+    obs_features: Optional[list] = None,
 ) -> dict:
     """
     Evaluate model against specified opponent.
@@ -824,6 +893,7 @@ def evaluate_model(
         ball_speed_multiplier=ball_speed,
         max_score=max_score,
         max_steps=max_steps,
+        obs_features=obs_features,
     )
 
     wins = 0
@@ -913,13 +983,13 @@ def run_full_curriculum(
     require_target: bool = True,
 ) -> PPO:
     """
-    Run the full 3-phase curriculum.
+    Run the full 5-phase curriculum.
 
     Each phase must achieve its win rate target before advancing to the next.
     If a phase fails to meet its target (after max timesteps), training stops.
 
     Args:
-        start_phase: Phase to start from (1, 2, or 3)
+        start_phase: Phase to start from (1 through 5)
         n_envs: Number of parallel environments
         save_dir: Directory to save models
         tensorboard_log: TensorBoard log directory
@@ -955,11 +1025,10 @@ def run_full_curriculum(
             print(f"Loading model from Phase {prev_phase}: {prev_model_path}")
             model = PPO.load(prev_model_path)
 
-    # Train each phase (3 phases total)
     total_start = time.time()
     final_phase_completed = 0
 
-    for phase in range(start_phase, NUM_PHASES + 1):  # Phases 1, 2, 3
+    for phase in range(start_phase, NUM_PHASES + 1):
         model, target_achieved = train_phase(
             phase=phase,
             model=model,
@@ -990,6 +1059,7 @@ def run_full_curriculum(
 
     # Final evaluation - compact format
     print("\nFINAL RESULTS:")
+    final_obs_features = CURRICULUM_PHASES[final_phase_completed].get("obs_features")
     for opponent in [
         OpponentType.SLOW_AI,
         OpponentType.BEGINNER_AI,
@@ -997,7 +1067,12 @@ def run_full_curriculum(
         OpponentType.REACTIVE_AI,
     ]:
         results = evaluate_model(
-            model, opponent, n_episodes=20, deterministic=False, verbose=False
+            model,
+            opponent,
+            n_episodes=20,
+            deterministic=False,
+            verbose=False,
+            obs_features=final_obs_features,
         )
         print(
             f"  vs {opponent.value}: {results['win_rate']*100:.0f}% "
@@ -1016,7 +1091,7 @@ def run_full_curriculum(
 def main():
     """Main entry point."""
     parser = argparse.ArgumentParser(
-        description="Train Pong agent with PPO and 3-phase curriculum"
+        description="Train Pong agent with PPO and 5-phase curriculum"
     )
     parser.add_argument(
         "--phase",
@@ -1054,8 +1129,32 @@ def main():
         default=None,
         help="Path to model to evaluate (skip training)",
     )
+    parser.add_argument(
+        "--overrides",
+        type=str,
+        default=None,
+        help="Path to a coach overrides JSON file (merged into CURRICULUM_PHASES)",
+    )
 
     args = parser.parse_args()
+
+    # Coach overrides: merge into the curriculum before anything reads it
+    if args.overrides:
+        with open(args.overrides) as f:
+            overrides = json.load(f)
+        changes = apply_overrides(overrides)
+        print(f"Applied coach overrides from {args.overrides}:")
+        if changes:
+            for line in changes:
+                print(f"  {line}")
+        else:
+            print("  (no effective changes)")
+        if any("obs_features" in line for line in changes):
+            print(
+                "  ⚠️  obs_features changed the observation shape: "
+                "models from earlier phases are not compatible, training "
+                "starts from a fresh model."
+            )
 
     # Evaluation mode
     if args.evaluate:
@@ -1067,6 +1166,7 @@ def main():
             OpponentType.BEGINNER_AI,
             OpponentType.NORMAL_AI,
             OpponentType.REACTIVE_AI,
+            OpponentType.EXPERT_AI,
         ]:
             print(f"\nvs {opponent.value}:")
             results = evaluate_model(model, opponent, n_episodes=20)

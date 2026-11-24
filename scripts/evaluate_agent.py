@@ -10,6 +10,7 @@ Master-Level Benchmarks:
 - medium_ai: >= 65% win rate
 - normal_ai: >= 55% win rate
 - reactive_ai: >= 50% win rate
+- expert_ai: >= 10% win rate
 
 Usage:
     python scripts/evaluate_agent.py --weights models/ppo_final.zip --episodes 20
@@ -36,6 +37,7 @@ BENCHMARKS = {
     OpponentType.MEDIUM_AI: 0.65,  # Between beginner and normal
     OpponentType.NORMAL_AI: 0.55,  # Phase 2 validation
     OpponentType.REACTIVE_AI: 0.50,  # Phase 3 validation
+    OpponentType.EXPERT_AI: 0.10,  # Elite wall-predictive opponent
 }
 
 
@@ -88,6 +90,16 @@ def evaluate_against_opponent(
         opponent_type=opponent_type,
         agent_controlled_opponent=False,
     )
+
+    # A model trained with coach observation features (see docs/COACH.md) has
+    # a wider observation space than this default environment
+    if model.observation_space.shape[0] != env.observation_space.shape[0]:
+        raise ValueError(
+            f"Model expects a {model.observation_space.shape[0]}-dim observation "
+            f"but this environment provides {env.observation_space.shape[0]} dims. "
+            "Models trained with obs_features cannot be benchmarked here; "
+            "evaluate them via scripts/coach.py --obs-features instead."
+        )
 
     wins = 0
     losses = 0
@@ -196,6 +208,7 @@ def run_full_evaluation(
         (OpponentType.MEDIUM_AI, "Medium AI"),
         (OpponentType.NORMAL_AI, "Normal AI"),
         (OpponentType.REACTIVE_AI, "Reactive AI"),
+        (OpponentType.EXPERT_AI, "Expert AI"),
     ]
 
     print("\n" + "=" * 60)
@@ -280,7 +293,14 @@ def main():
         "--opponent",
         type=str,
         default=None,
-        choices=["slow_ai", "beginner_ai", "medium_ai", "normal_ai", "reactive_ai"],
+        choices=[
+            "slow_ai",
+            "beginner_ai",
+            "medium_ai",
+            "normal_ai",
+            "reactive_ai",
+            "expert_ai",
+        ],
         help="Evaluate against specific opponent only",
     )
     args = parser.parse_args()
@@ -308,6 +328,7 @@ def main():
             "medium_ai": OpponentType.MEDIUM_AI,
             "normal_ai": OpponentType.NORMAL_AI,
             "reactive_ai": OpponentType.REACTIVE_AI,
+            "expert_ai": OpponentType.EXPERT_AI,
         }
         opponent_type = opponent_mapping[args.opponent]
 

@@ -1,0 +1,157 @@
+{
+  "created_at": "2026-09-25T10:01:49.452401+00:00",
+  "backend": "neohorse",
+  "phase": 5,
+  "state": "Pong PPO agent training status. The agent plays right-side Pong against scripted AI opponents of increasing speed. Goal: maximize game win rate.\nCoaching focuses on phase 5.\n\nCurrent configuration for this phase:\n  hit_reward = 0.05\n  tracking_reward = 0.01\n  pressure_scale = 0.5\n  step_penalty = 0.001\n  learning_rate = 3e-05\n  ent_coef = 0.01\n  timesteps = 200000\n  ball_speed = 1.0\n  target_win_rate = 0.2\n  n_steps = 1024\n  batch_size = 128\n  clip_range = 0.2\n\nRecent training metrics (mean over last ~40 logged points):\n  curriculum/win_rate: last=0.7708 mean=0.6470 trend=+0.0754\n  train/entropy_loss: last=-0.9470 mean=-0.9324 trend=-0.0066\n  train/value_loss: last=0.2625 mean=0.2247 trend=-0.0164\n  train/policy_gradient_loss: last=-0.0004 mean=-0.0010 trend=+0.0004\n  train/approx_kl: last=0.0017 mean=0.0028 trend=-0.0005\n  train/clip_fraction: last=0.0027 mean=0.0107 trend=-0.0035\n  train/explained_variance: last=0.7877 mean=0.7207 trend=+0.0689\n  win rate sample: [0.5, 0.5385, 0.6818, 0.6562, 0.65, 0.5, 0.6875, 0.7692, 0.7429, 0.7609]",
+  "questions": {
+    "plateaued": {
+      "type": "noul",
+      "instructions": "Has the win rate plateaued: no meaningful improvement across the recent training chunks, without having reached the phase target?"
+    },
+    "rally_farming": {
+      "type": "noul",
+      "instructions": "Is the agent rally-farming: a high hit rate and long rallies but a low win rate, exploiting the hit reward instead of trying to score?"
+    },
+    "value_diverging": {
+      "type": "noul",
+      "instructions": "Is the value function diverging or the policy destabilizing: value loss or KL growing persistently across recent updates?"
+    },
+    "entropy_collapsed": {
+      "type": "noul",
+      "instructions": "Has policy entropy collapsed too early, leaving too little exploration for the agent to discover scoring strategies?"
+    },
+    "reward_knob": {
+      "type": "choice",
+      "instructions": "Which reward shaping parameter most needs adjustment to improve the win rate in this phase?",
+      "criteria": {
+        "hit_reward": "Reward paid once per successful paddle hit; bootstraps motor skills but can teach rally-farming",
+        "tracking_reward": "Small per-step reward for aligning the paddle with an approaching ball",
+        "pressure_scale": "Reward per return proportional to how far the opponent is from the predicted ball arrival",
+        "step_penalty": "Per-step penalty encouraging shorter rallies and faster games",
+        "none": "Reward shaping is fine; do not change it"
+      }
+    },
+    "hp_knob": {
+      "type": "choice",
+      "instructions": "Which PPO hyperparameter most needs adjustment given the training metrics (losses, entropy, KL, win rate trend)?",
+      "criteria": {
+        "learning_rate": "PPO learning rate; lower when forgetting or instability appears, higher when learning stalls",
+        "ent_coef": "Entropy coefficient; higher encourages exploration, lower sharpens the policy",
+        "n_steps": "Rollout length per environment before each PPO update",
+        "batch_size": "Minibatch size for PPO updates",
+        "clip_range": "PPO clipping range; lower makes updates more conservative",
+        "none": "Hyperparameters are fine; do not change them"
+      }
+    },
+    "obs_feature": {
+      "type": "choice",
+      "instructions": "Would adding one of these observation features help the agent learn faster in this phase? Enabling a feature restarts training from a fresh model, so only choose one if the current observation is clearly missing information the agent needs.",
+      "criteria": {
+        "paddle_velocity": "Player paddle y-velocity; gives the policy its own movement intent",
+        "intercept_y": "Predicted ball y at the player paddle plane with wall bounces; a head start on positioning",
+        "relative_offset": "Signed vertical distance between paddle and ball; direct tracking error",
+        "none": "The current observation vector is sufficient"
+      }
+    },
+    "phase_health": {
+      "type": "score",
+      "instructions": "Rate the overall health of training in phase 5: is it failing, struggling, progressing, or on track?",
+      "criteria": [
+        "failing",
+        "struggling",
+        "progressing",
+        "on_track"
+      ]
+    }
+  },
+  "answers": {
+    "plateaued": {
+      "type": "noul",
+      "noul": 0.22155749797821045,
+      "probabilities": {
+        "false": 0.7784424424171448,
+        "true": 0.22155749797821045
+      }
+    },
+    "rally_farming": {
+      "type": "noul",
+      "noul": 0.043571341782808304,
+      "probabilities": {
+        "false": 0.9564286470413208,
+        "true": 0.043571341782808304
+      }
+    },
+    "value_diverging": {
+      "type": "noul",
+      "noul": 0.016831446439027786,
+      "probabilities": {
+        "false": 0.9831684827804565,
+        "true": 0.016831446439027786
+      }
+    },
+    "entropy_collapsed": {
+      "type": "noul",
+      "noul": 0.21363376080989838,
+      "probabilities": {
+        "false": 0.7863662242889404,
+        "true": 0.21363376080989838
+      }
+    },
+    "reward_knob": {
+      "type": "choice",
+      "choice": "none",
+      "probabilities": {
+        "hit_reward": 0.2440909892320633,
+        "tracking_reward": 0.28144556283950806,
+        "pressure_scale": 0.056436363607645035,
+        "step_penalty": 0.05871278792619705,
+        "none": 0.35931432247161865
+      }
+    },
+    "hp_knob": {
+      "type": "choice",
+      "choice": "none",
+      "probabilities": {
+        "learning_rate": 0.1287476271390915,
+        "ent_coef": 0.2669046223163605,
+        "n_steps": 0.05751306191086769,
+        "batch_size": 0.008004861883819103,
+        "clip_range": 0.1737828254699707,
+        "none": 0.36504700779914856
+      }
+    },
+    "obs_feature": {
+      "type": "choice",
+      "choice": "none",
+      "probabilities": {
+        "paddle_velocity": 0.06299431622028351,
+        "intercept_y": 0.11120283603668213,
+        "relative_offset": 0.20561373233795166,
+        "none": 0.6201890707015991
+      }
+    },
+    "phase_health": {
+      "type": "score",
+      "score": 2.3445157762616873,
+      "legend": {
+        "0": "failing",
+        "1": "struggling",
+        "2": "progressing",
+        "3": "on_track"
+      },
+      "probabilities": {
+        "0": 0.006431864108890295,
+        "1": 0.018936729058623314,
+        "2": 0.5983150601387024,
+        "3": 0.3763163089752197
+      }
+    }
+  },
+  "derived_changes": [],
+  "warnings": [],
+  "overrides": {
+    "phases": {
+      "5": {}
+    }
+  }
+}

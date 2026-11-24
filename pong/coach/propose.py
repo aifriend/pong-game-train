@@ -97,7 +97,9 @@ def derive_changes(
                 "key": knob,
                 "old": old,
                 "new": new,
-                "confidence": answers.get(knob_q, {}).get("probabilities", {}).get(knob),
+                "confidence": answers.get(knob_q, {})
+                .get("probabilities", {})
+                .get(knob),
             }
         )
 
@@ -216,8 +218,10 @@ def format_proposal(proposal: Dict[str, Any]) -> str:
 
     health = proposal["answers"].get("phase_health")
     if health:
-        lines.append(f"\nPhase health score: {health['score']:.2f} / 3 "
-                     f"(0=failing, 3=on_track)")
+        lines.append(
+            f"\nPhase health score: {health['score']:.2f} / 3 "
+            f"(0=failing, 3=on_track)"
+        )
 
     lines.append("\nProposed changes:")
     if proposal["derived_changes"]:

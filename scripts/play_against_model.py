@@ -131,7 +131,9 @@ def main():
 
     pygame.init()
     screen = pygame.display.set_mode((config.screen_width, config.screen_height))
-    pygame.display.set_caption(f"Pong — YOU (right) vs {args.opponent.upper()} AI (left)")
+    pygame.display.set_caption(
+        f"Pong — YOU (right) vs {args.opponent.upper()} AI (left)"
+    )
     clock = pygame.time.Clock()
     font = pygame.font.SysFont("monospace", 48, bold=True)
     small_font = pygame.font.SysFont("monospace", 24)

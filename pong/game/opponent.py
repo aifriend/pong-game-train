@@ -89,8 +89,6 @@ class Opponent(Block):
             ball = ball_group.sprite
             difference = self._target_y(ball) - self.rect.centery
             if abs(difference) > self.dead_zone:
-                self.rect.y += round(
-                    max(-self.speed, min(self.speed, difference))
-                )
+                self.rect.y += round(max(-self.speed, min(self.speed, difference)))
         self.screen_constrain()
         self.velocity = self.rect.y - previous_y

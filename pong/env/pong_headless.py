@@ -412,9 +412,7 @@ class PongHeadlessEnv(gym.Env):
     ):
         """Apply an angle-preserving rebound with bounded speed and spin."""
         c = self.config
-        hit_offset = (self.ball_y - paddle_y) / (
-            c.paddle_height / 2 + c.ball_size / 2
-        )
+        hit_offset = (self.ball_y - paddle_y) / (c.paddle_height / 2 + c.ball_size / 2)
         launch_speed = c.base_ball_speed * self.ball_speed_multiplier
         self.ball_vx, self.ball_vy = bounce_velocity(
             self.ball_vx,
@@ -457,9 +455,15 @@ class PongHeadlessEnv(gym.Env):
 
             if self.ball_vx > 0:
                 events.append(
-                    ((c.screen_width - c.offset - self.ball_x) / self.ball_vx, "goal_right")
+                    (
+                        (c.screen_width - c.offset - self.ball_x) / self.ball_vx,
+                        "goal_right",
+                    )
                 )
-                if "player" not in missed_paddles and self.ball_x <= right_back + epsilon:
+                if (
+                    "player" not in missed_paddles
+                    and self.ball_x <= right_back + epsilon
+                ):
                     hit_time = (right_plane - self.ball_x) / self.ball_vx
                     if hit_time < 0 and self.ball_x >= right_plane - epsilon:
                         hit_time = 0.0
@@ -467,7 +471,10 @@ class PongHeadlessEnv(gym.Env):
                         events.append((hit_time, "player"))
             elif self.ball_vx < 0:
                 events.append(((c.offset - self.ball_x) / self.ball_vx, "goal_left"))
-                if "opponent" not in missed_paddles and self.ball_x >= left_back - epsilon:
+                if (
+                    "opponent" not in missed_paddles
+                    and self.ball_x >= left_back - epsilon
+                ):
                     hit_time = (left_plane - self.ball_x) / self.ball_vx
                     if hit_time < 0 and self.ball_x <= left_plane + epsilon:
                         hit_time = 0.0

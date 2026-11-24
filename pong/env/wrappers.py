@@ -6,13 +6,16 @@ Provides reward shaping wrappers for different training objectives.
 
 import gymnasium as gym
 import numpy as np
-from typing import Tuple, Dict, Any
+from typing import TYPE_CHECKING, Tuple, Dict, Any, Union
 
 # Fallback court aspect ratio (screen_width / screen_height) for the rare case
 # where the wrapped environment exposes no GameConfig. It matches the default
 # court of 960 x 720 pixels. See WinFocusedRewardWrapper.__init__ for why the
 # trajectory prediction needs this ratio.
 DEFAULT_COURT_ASPECT = 960.0 / 720.0
+
+if TYPE_CHECKING:
+    from pong.env.pong_headless import OpponentType
 
 
 class WinFocusedRewardWrapper(gym.Wrapper):
@@ -315,7 +318,7 @@ class EpisodeStatsWrapper(gym.Wrapper):
 
 
 def make_ppo_env(
-    opponent_type: str = "normal_ai",
+    opponent_type: Union[str, "OpponentType"] = "normal_ai",
     ball_speed: float = 1.0,
     max_score: int = 3,
     max_steps: int = 10000,
@@ -358,7 +361,10 @@ def make_ppo_env(
         "agent": OpponentType.AGENT,
     }
 
-    opp_type = opponent_mapping.get(opponent_type.lower(), OpponentType.NORMAL_AI)
+    if isinstance(opponent_type, OpponentType):
+        opp_type = opponent_type
+    else:
+        opp_type = opponent_mapping.get(opponent_type.lower(), OpponentType.NORMAL_AI)
 
     # Create base environment
     env = PongHeadlessEnv(

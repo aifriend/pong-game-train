@@ -59,7 +59,11 @@ def collect_tb_metrics(tensorboard_root: Path) -> Dict[str, Dict[str, Any]]:
 
     phases: Dict[str, Dict[str, Any]] = {}
     phase_dirs = sorted(
-        (d for d in tensorboard_root.iterdir() if d.is_dir() and d.name.startswith("phase")),
+        (
+            d
+            for d in tensorboard_root.iterdir()
+            if d.is_dir() and d.name.startswith("phase")
+        ),
         key=lambda d: d.name,
     )
     for phase_dir in phase_dirs:
@@ -226,7 +230,9 @@ def build_state_text(metrics: Dict[str, Any], phase: int) -> str:
                 f"  {tag}: last={summary['last']:.4f} mean={summary['mean']:.4f} "
                 f"trend={summary['trend']:+.4f}"
             )
-        win_rate = phase_tb.get("rollout/win_rate") or phase_tb.get("curriculum/win_rate")
+        win_rate = phase_tb.get("rollout/win_rate") or phase_tb.get(
+            "curriculum/win_rate"
+        )
         if win_rate:
             lines.append(f"  win rate sample: {win_rate['sample']}")
 

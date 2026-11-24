@@ -15,8 +15,8 @@ from pong.coach.propose import _adjust_value, derive_changes, run_proposal
 from pong.env.pong_headless import PongHeadlessEnv, SUPPORTED_OBS_FEATURES
 from scripts.train_ppo_curriculum import apply_overrides
 
-
 # --- helpers ---------------------------------------------------------------
+
 
 def make_metrics(phase=2):
     return {
@@ -51,10 +51,19 @@ def make_answers(
         "rally_farming": {"noul": 0.2},
         "value_diverging": {"noul": 0.1},
         "entropy_collapsed": {"noul": 0.3},
-        "reward_knob": {"choice": reward_knob, "probabilities": uniform_probs(
-            ["hit_reward", "tracking_reward", "pressure_scale", "step_penalty", "none"],
-            reward_knob,
-        )},
+        "reward_knob": {
+            "choice": reward_knob,
+            "probabilities": uniform_probs(
+                [
+                    "hit_reward",
+                    "tracking_reward",
+                    "pressure_scale",
+                    "step_penalty",
+                    "none",
+                ],
+                reward_knob,
+            ),
+        },
         "reward_adjustment": {
             "choice": reward_adjustment,
             "probabilities": uniform_probs(
@@ -62,10 +71,20 @@ def make_answers(
                 reward_adjustment,
             ),
         },
-        "hp_knob": {"choice": hp_knob, "probabilities": uniform_probs(
-            ["learning_rate", "ent_coef", "n_steps", "batch_size", "clip_range", "none"],
-            hp_knob,
-        )},
+        "hp_knob": {
+            "choice": hp_knob,
+            "probabilities": uniform_probs(
+                [
+                    "learning_rate",
+                    "ent_coef",
+                    "n_steps",
+                    "batch_size",
+                    "clip_range",
+                    "none",
+                ],
+                hp_knob,
+            ),
+        },
         "hp_adjustment": {
             "choice": hp_adjustment,
             "probabilities": uniform_probs(
@@ -73,15 +92,19 @@ def make_answers(
                 hp_adjustment,
             ),
         },
-        "obs_feature": {"choice": obs_feature, "probabilities": uniform_probs(
-            ["paddle_velocity", "intercept_y", "relative_offset", "none"],
-            obs_feature,
-        )},
+        "obs_feature": {
+            "choice": obs_feature,
+            "probabilities": uniform_probs(
+                ["paddle_velocity", "intercept_y", "relative_offset", "none"],
+                obs_feature,
+            ),
+        },
         "phase_health": {"score": 1.5, "probabilities": [0.25, 0.25, 0.25, 0.25]},
     }
 
 
 # --- adjustment math -------------------------------------------------------
+
 
 def test_adjust_value_bounds():
     # A 25% decrease below the floor clamps to the floor instead of rounding
@@ -162,6 +185,7 @@ def test_derive_changes_keep_means_no_overrides():
 
 # --- proposal generation ---------------------------------------------------
 
+
 def test_mock_proposal_schema(tmp_path):
     proposal = run_proposal(
         backend_name="mock",
@@ -170,8 +194,14 @@ def test_mock_proposal_schema(tmp_path):
         out_dir=tmp_path,
     )
 
-    for section in ("state", "metrics_snapshot", "questions", "answers",
-                    "derived_changes", "overrides"):
+    for section in (
+        "state",
+        "metrics_snapshot",
+        "questions",
+        "answers",
+        "derived_changes",
+        "overrides",
+    ):
         assert section in proposal
     assert proposal["overrides"] == {"phases": {"2": {}}}
     # The proposal file was written where the caller asked
@@ -239,6 +269,7 @@ def test_state_text_handles_missing_metrics():
 
 # --- overrides plumbing in the trainer -------------------------------------
 
+
 def test_apply_overrides_merges_and_rejects():
     from scripts.train_ppo_curriculum import CURRICULUM_PHASES
 
@@ -260,6 +291,7 @@ def test_apply_overrides_merges_and_rejects():
 
 
 # --- observation features --------------------------------------------------
+
 
 @pytest.mark.parametrize("feature", SUPPORTED_OBS_FEATURES)
 def test_obs_features_step_and_shape(feature):
@@ -292,6 +324,7 @@ def test_obs_features_all_and_unknown():
 
 # --- apply round-trip ------------------------------------------------------
 
+
 def test_config_snapshot_includes_ppo_defaults():
     from pong.coach.metrics import current_config_snapshot
 
@@ -316,10 +349,13 @@ def test_collect_evaluation_rejects_obs_dim_mismatch():
     with pytest.raises(ValueError, match="obs_features"):
         collect_evaluation(model, n_episodes=1, obs_features=["intercept_y"])
 
+
 def test_apply_round_trip(tmp_path):
     proposal = {
         "created_at": "now",
-        "overrides": {"phases": {"2": {"hit_reward": 0.4, "obs_features": ["intercept_y"]}}},
+        "overrides": {
+            "phases": {"2": {"hit_reward": 0.4, "obs_features": ["intercept_y"]}}
+        },
     }
     proposal_path = tmp_path / "proposal.json"
     proposal_path.write_text(json.dumps(proposal))

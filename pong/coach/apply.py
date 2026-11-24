@@ -67,7 +67,9 @@ def apply_proposal(
 def format_overrides(overrides: Dict[str, Any]) -> str:
     """Human-readable rendering of the active overrides."""
     lines = []
-    for phase, values in sorted(overrides.get("phases", {}).items(), key=lambda kv: int(kv[0])):
+    for phase, values in sorted(
+        overrides.get("phases", {}).items(), key=lambda kv: int(kv[0])
+    ):
         for key, value in values.items():
             lines.append(f"  phase {phase}: {key} = {value}")
     return "\n".join(lines) if lines else "  (no overrides active)"

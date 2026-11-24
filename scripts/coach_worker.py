@@ -31,9 +31,9 @@ def main() -> int:
         import torch
 
         device = (
-            "mps" if torch.backends.mps.is_available()
-            else "cuda" if torch.cuda.is_available()
-            else "cpu"
+            "mps"
+            if torch.backends.mps.is_available()
+            else "cuda" if torch.cuda.is_available() else "cpu"
         )
 
     engine = DecisionEngine(os.environ["NEOHORSE_MODEL_DIR"], device=device)

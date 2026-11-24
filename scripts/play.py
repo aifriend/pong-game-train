@@ -63,7 +63,10 @@ def main() -> None:
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
                     running = False
-                elif event.key == pygame.K_s and pygame.key.get_mods() & pygame.KMOD_SHIFT:
+                elif (
+                    event.key == pygame.K_s
+                    and pygame.key.get_mods() & pygame.KMOD_SHIFT
+                ):
                     game_manager, player, opponent = create_game(
                         args.difficulty, Ball.HIGH_SPEED
                     )
@@ -72,9 +75,15 @@ def main() -> None:
                 elif event.key in (pygame.K_DOWN, pygame.K_s):
                     player.input_direction = 1
             elif event.type == pygame.KEYUP:
-                if event.key in (pygame.K_UP, pygame.K_w) and player.input_direction == -1:
+                if (
+                    event.key in (pygame.K_UP, pygame.K_w)
+                    and player.input_direction == -1
+                ):
                     player.input_direction = 0
-                elif event.key in (pygame.K_DOWN, pygame.K_s) and player.input_direction == 1:
+                elif (
+                    event.key in (pygame.K_DOWN, pygame.K_s)
+                    and player.input_direction == 1
+                ):
                     player.input_direction = 0
 
         game_manager.background()

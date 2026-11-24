@@ -242,12 +242,13 @@ from scripts.train_ppo_curriculum import train_phase
 from stable_baselines3 import PPO
 
 # Train with custom parameters
-model = train_phase(
+model, passed = train_phase(
     phase=1,
     n_envs=16,           # More parallel environments
     save_dir="./my_models/",
     verbose=1
 )
+# `passed` is True if the phase's win-rate target was reached
 ```
 
 ### Create Custom Environment
@@ -270,6 +271,10 @@ env = make_ppo_env(
 ```python
 from stable_baselines3 import PPO
 import gymnasium as gym
+from pong.env.pong_headless import register_headless_env
+
+# Register "PongHeadless-v0" with gymnasium (not done automatically on import)
+register_headless_env()
 
 # Load model
 model = PPO.load("models/ppo_final.zip")
